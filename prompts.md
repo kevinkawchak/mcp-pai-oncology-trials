@@ -1,0 +1,61 @@
+# Build Prompts
+
+## Initial Build Prompt (v0.1.0)
+
+MCP Servers for Physical AI Oncology Clinical Trial Systems (TrialMCP Pack)
+Your goal is to build a suite of open MCP servers and reference clients for the GitHub repository mcp-pai-oncology-trials primarily using the following guides, and the instructions at the bottom:
+1) kevinkawchak/physical-ai-oncology-trials (Integrate codebase from robots, software, connectivity, etc., where appropriate)
+2) kevinkawchak/physical-ai-oncology-trials/blob/main/unification/usl/paper/usl_oncology_trials.tex (Integrate unification standard level and implications, where appropriate)
+3) kevinkawchak/pai-oncology-trial-fl/blob/main/paper/main.tex (Integrate federated learning pai oncology trials, where appropriate)
+
+Use 3 flow chart text diagrams and 3 text diagrams that describe different perspectives on the process and/or the utility to the field - distributed throughout main Readme. The main readme needs badges at the top for language version, date, etc. Make sure all relevant information is included for the mcp servers and process as a whole, as a paper based on your output will be published in future steps.
+
+Make sure to clone the current repo. Be sure to fix and address errors that would cause failed checks for the single pull request Place the new release notes in releases.md under main using the format below.
+
+Provide an updated changelog.md (v0.1.0). Provide a copy of this prompt under a main prompts.md file. When you are finished, auto-push the update to GitHub on your own for my review. The user will then review your updates in GitHub prior to finalization.
+
+"FORMAT"
+Release title
+v0.1.0 -
+
+## Summary
+
+## Features
+
+## Contributors
+@kevinkawchak
+@claude
+
+## Notes
+
+
+"INSTRUCTIONS"
+Problem statement Autonomous oncology trial robots and agents must interface with real systems: scheduling, eConsent, EDC/eSource repositories, imaging archives, lab systems. Point-to-point integrations do not scale. MCP is an emerging open protocol for connecting AI tools to external data and tools.
+Technical scope Build a suite of open MCP servers and reference clients for:
+* FHIR access patterns (read-only, scoped) for trial-relevant resources.
+* DICOM query/retrieve proxies with strict permissions.
+* Trial audit ledger and chain-of-custody APIs (Projects A/D).
+* "Data provenance gateway" enforcing least privilege, logging all tool calls, and providing replayable audit traces.
+Required datasets
+* Public synthetic FHIR bundles; DICOM sample datasets; simulated scheduling data (real systems require partners; unspecified).
+Algorithms/models
+* Emphasis on authorization, policy enforcement, and semantic mapping; minimal ML.
+Hardware/robotics integration
+* Robot control agents can call MCP tools for "fetch task order," "upload certified evidence," "retrieve DICOM study pointer," etc.
+Regulatory/compliance considerations
+* Security is pivotal: recent reporting highlights vulnerabilities in agentic toolchains and MCP-related components, reinforcing the need for explicit authentication/authorization and safe defaults.
+* Electronic records guidance: the system must preserve metadata and traceability when copying records.
+Validation plan
+* Security test suite: SSRF, injection, permission escalation, replay attacks.
+* Audit completeness tests: every MCP call produces a signed audit record.
+Milestones
+* M1 (0–4 mo): "read-only clinical data" MCP servers + auth framework
+* M2 (4–8 mo): DICOM/FHIR provenance gateway + replay logs
+* M3 (8–12 mo): reference "trial robot agent" integration demo
+Team roles and timeline 12 months: security engineer, backend engineer, clinical interoperability engineer, QA.
+Potential collaborators Hospital IT; EHR integration teams; open interoperability communities.
+Adoption pathway Start with "read-only" plus audit logging, then progress to controlled write operations for eSource uploads.
+Open-source deliverables
+* trialmcp-fhir, trialmcp-dicom, trialmcp-ledger
+* trialmcp-authz (policy templates)
+* Security playbook + reproducible hardening guides

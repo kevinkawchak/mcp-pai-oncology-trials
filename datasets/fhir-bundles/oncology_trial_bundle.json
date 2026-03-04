@@ -1,0 +1,191 @@
+{
+  "resourceType": "Bundle",
+  "id": "oncology-trial-synthetic-001",
+  "type": "collection",
+  "timestamp": "2026-03-01T00:00:00Z",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "ResearchStudy",
+        "id": "ONCO-TRIAL-2026-001",
+        "status": "active",
+        "title": "Phase II Multi-Site Robotic-Assisted Tumor Biopsy Trial",
+        "phase": {
+          "coding": [{"system": "http://terminology.hl7.org/CodeSystem/research-study-phase", "code": "phase-2"}],
+          "text": "Phase II"
+        },
+        "category": [{"text": "Interventional"}],
+        "description": "Multi-site clinical trial evaluating physical AI-assisted robotic tumor biopsy procedures with USL-scored platforms (Franka Panda, dVRK) across federated trial sites.",
+        "sponsor": {"reference": "Organization/trial-sponsor-001"},
+        "principalInvestigator": {"reference": "Practitioner/pi-001"}
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "ResearchStudy",
+        "id": "ONCO-TRIAL-2026-002",
+        "status": "active",
+        "title": "Phase III Adaptive Immunotherapy with Digital Twin Monitoring",
+        "phase": {
+          "coding": [{"system": "http://terminology.hl7.org/CodeSystem/research-study-phase", "code": "phase-3"}],
+          "text": "Phase III"
+        },
+        "category": [{"text": "Interventional"}],
+        "description": "Adaptive immunotherapy trial using digital twin tumor models (Gompertz growth curves) with real-time robotic sample collection for pharmacokinetic monitoring."
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "patient-001",
+        "name": [{"family": "SyntheticDoe", "given": ["Jane"]}],
+        "gender": "female",
+        "birthDate": "1965-03-15",
+        "address": [{"city": "Synthetic City", "state": "SC", "postalCode": "00000"}]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "patient-002",
+        "name": [{"family": "SyntheticSmith", "given": ["John"]}],
+        "gender": "male",
+        "birthDate": "1958-07-22",
+        "address": [{"city": "Synthetic Town", "state": "ST", "postalCode": "00001"}]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "patient-003",
+        "name": [{"family": "SyntheticJones", "given": ["Maria"]}],
+        "gender": "female",
+        "birthDate": "1972-11-08",
+        "address": [{"city": "Synthetic Village", "state": "SV", "postalCode": "00002"}]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "ResearchSubject",
+        "id": "subject-001",
+        "status": "on-study",
+        "study": {"reference": "ResearchStudy/ONCO-TRIAL-2026-001"},
+        "individual": {"reference": "Patient/patient-001"}
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "ResearchSubject",
+        "id": "subject-002",
+        "status": "on-study",
+        "study": {"reference": "ResearchStudy/ONCO-TRIAL-2026-001"},
+        "individual": {"reference": "Patient/patient-002"}
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "ResearchSubject",
+        "id": "subject-003",
+        "status": "on-study",
+        "study": {"reference": "ResearchStudy/ONCO-TRIAL-2026-002"},
+        "individual": {"reference": "Patient/patient-003"}
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Condition",
+        "id": "condition-001",
+        "subject": {"reference": "Patient/patient-001"},
+        "code": {
+          "coding": [{"system": "http://snomed.info/sct", "code": "254637007", "display": "Non-small cell lung cancer"}],
+          "text": "Non-small cell lung cancer"
+        },
+        "clinicalStatus": {
+          "coding": [{"system": "http://terminology.hl7.org/CodeSystem/condition-clinical", "code": "active"}]
+        },
+        "stage": [{"summary": {"text": "Stage IIIA"}}]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Condition",
+        "id": "condition-002",
+        "subject": {"reference": "Patient/patient-002"},
+        "code": {
+          "coding": [{"system": "http://snomed.info/sct", "code": "363346000", "display": "Colorectal cancer"}],
+          "text": "Colorectal cancer"
+        },
+        "clinicalStatus": {
+          "coding": [{"system": "http://terminology.hl7.org/CodeSystem/condition-clinical", "code": "active"}]
+        },
+        "stage": [{"summary": {"text": "Stage IIB"}}]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-tumor-001",
+        "status": "final",
+        "subject": {"reference": "Patient/patient-001"},
+        "code": {
+          "coding": [{"system": "http://loinc.org", "code": "21889-1", "display": "Tumor size"}],
+          "text": "Tumor size - longest diameter"
+        },
+        "valueQuantity": {"value": 3.2, "unit": "cm", "system": "http://unitsofmeasure.org"},
+        "effectiveDateTime": "2026-02-15T10:30:00Z"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-marker-001",
+        "status": "final",
+        "subject": {"reference": "Patient/patient-001"},
+        "code": {
+          "coding": [{"system": "http://loinc.org", "code": "2857-1", "display": "PSA"}],
+          "text": "Prostate Specific Antigen"
+        },
+        "valueQuantity": {"value": 4.5, "unit": "ng/mL", "system": "http://unitsofmeasure.org"},
+        "effectiveDateTime": "2026-02-20T08:00:00Z"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "MedicationAdministration",
+        "id": "medadmin-001",
+        "status": "completed",
+        "subject": {"reference": "Patient/patient-001"},
+        "medicationCodeableConcept": {
+          "coding": [{"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "1116635", "display": "Pembrolizumab"}],
+          "text": "Pembrolizumab 200mg IV"
+        },
+        "effectivePeriod": {
+          "start": "2026-02-25T09:00:00Z",
+          "end": "2026-02-25T09:30:00Z"
+        },
+        "dosage": {
+          "dose": {"value": 200, "unit": "mg"},
+          "rateQuantity": {"value": 30, "unit": "min"}
+        }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "AdverseEvent",
+        "id": "ae-001",
+        "subject": {"reference": "Patient/patient-001"},
+        "event": {
+          "coding": [{"system": "http://terminology.hl7.org/CodeSystem/adverse-event-type", "code": "fatigue"}],
+          "text": "Grade 2 Fatigue (CTCAE v5.0)"
+        },
+        "date": "2026-02-27T14:00:00Z",
+        "seriousness": {
+          "coding": [{"code": "non-serious"}]
+        },
+        "severity": {
+          "coding": [{"code": "moderate"}]
+        }
+      }
+    }
+  ]
+}

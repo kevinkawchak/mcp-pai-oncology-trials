@@ -1,0 +1,52 @@
+{
+  "description": "Simulated trial scheduling data for robotic procedure coordination",
+  "trial_id": "ONCO-TRIAL-2026-001",
+  "schedule": [
+    {
+      "event_id": "evt-001",
+      "type": "robotic_biopsy",
+      "patient_id": "patient-001",
+      "scheduled_datetime": "2026-03-10T09:00:00Z",
+      "duration_minutes": 45,
+      "robot_platform": "Franka Panda",
+      "usl_score": 7.4,
+      "site": "Synthetic Oncology Center - Site A",
+      "status": "scheduled",
+      "prerequisites": [
+        {"type": "imaging", "study_uid": "1.2.826.0.1.3680043.8.1055.1.20260301.1", "status": "completed"},
+        {"type": "consent", "econsent_id": "consent-001", "status": "signed"},
+        {"type": "lab_results", "panel": "CBC", "status": "pending"}
+      ]
+    },
+    {
+      "event_id": "evt-002",
+      "type": "sample_collection",
+      "patient_id": "patient-002",
+      "scheduled_datetime": "2026-03-12T14:00:00Z",
+      "duration_minutes": 30,
+      "robot_platform": "Kinova Gen3",
+      "usl_score": 5.7,
+      "site": "Synthetic Oncology Center - Site B",
+      "status": "scheduled",
+      "prerequisites": [
+        {"type": "imaging", "study_uid": "1.2.826.0.1.3680043.8.1055.1.20260301.2", "status": "completed"},
+        {"type": "consent", "econsent_id": "consent-002", "status": "signed"}
+      ]
+    },
+    {
+      "event_id": "evt-003",
+      "type": "imaging_guidance",
+      "patient_id": "patient-003",
+      "scheduled_datetime": "2026-03-15T10:30:00Z",
+      "duration_minutes": 60,
+      "robot_platform": "da Vinci dVRK",
+      "usl_score": 7.1,
+      "site": "Synthetic Oncology Center - Site A",
+      "status": "pending_approval",
+      "prerequisites": [
+        {"type": "imaging", "study_uid": "1.2.826.0.1.3680043.8.1055.1.20260301.3", "status": "completed"},
+        {"type": "consent", "econsent_id": "consent-003", "status": "pending"}
+      ]
+    }
+  ]
+}
