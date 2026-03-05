@@ -9,7 +9,7 @@
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.18869776-blue)](https://doi.org/10.5281/zenodo.18869776)
 [![Contributors](https://img.shields.io/badge/contributors-%40kevinkawchak%20%7C%20%40claude%20%7C%20%40codex-black)](#team-and-collaboration)
 
-**TrialMCP Pack** -- A suite of open Model Context Protocol (MCP) servers and reference clients enabling autonomous oncology trial robots and AI agents to interface with clinical systems: scheduling, eConsent, EDC/eSource repositories, imaging archives, and laboratory systems.
+**TrialMCP** -- A suite of open Model Context Protocol (MCP) servers and reference clients enabling autonomous oncology trial robots and AI agents to interface with clinical systems: scheduling, eConsent, EDC/eSource repositories, imaging archives, and laboratory systems.
 
 Point-to-point integrations between robotic platforms and clinical infrastructure do not scale. MCP is an emerging open protocol (Linux Foundation AAIF) for connecting AI tools to external data sources. This project provides the interoperability layer that bridges Physical AI robotics with regulated clinical trial operations across federated multi-site deployments.
 
@@ -33,10 +33,10 @@ Point-to-point integrations between robotic platforms and clinical infrastructur
 
 ## Architecture Overview
 
-The TrialMCP Pack connects autonomous trial robots to clinical systems through a layered MCP architecture with authorization enforcement, privacy-preserving data access, and comprehensive audit logging.
+The TrialMCP connects autonomous trial robots to clinical systems through a layered MCP architecture with authorization enforcement, privacy-preserving data access, and comprehensive audit logging.
 
 ```
- TRIALMCP PACK -- END-TO-END ARCHITECTURE
+ TRIALMCP -- END-TO-END ARCHITECTURE
  ==========================================
 
  +---------------------------+     +---------------------------+
@@ -84,7 +84,7 @@ The TrialMCP Pack connects autonomous trial robots to clinical systems through a
  +-----------------------------------------------------------+
 ```
 
-**Figure 1.** TrialMCP Pack end-to-end architecture showing robot and human agents accessing clinical data through the authorization layer, specialized MCP servers, and the data provenance gateway.
+**Figure 1.** TrialMCP end-to-end architecture showing robot and human agents accessing clinical data through the authorization layer, specialized MCP servers, and the data provenance gateway.
 
 ### Peer-Review Driven Development
 
@@ -207,7 +207,7 @@ Append-only, hash-chained audit ledger satisfying 21 CFR Part 11 requirements fo
 
 ### trialmcp-authz (Authorization Policies)
 
-Policy decision point (PDP) for the entire TrialMCP Pack implementing role-based access control with deny-by-default semantics.
+Policy decision point (PDP) for the entire TrialMCP implementing role-based access control with deny-by-default semantics.
 
 **Tools:**
 | Tool | Description |
@@ -314,13 +314,13 @@ The Unification Standard Level (USL) is a quantitative scoring framework (1.0-10
 
 **USL Score Bands:** Exemplary (9.0-10.0), Advanced (7.0-8.9), Intermediate (5.0-6.9), Foundational (3.0-4.9), Initial (1.0-2.9)
 
-MCP integration is explicitly part of USL Dimension B scoring criteria. The TrialMCP Pack provides the standardized AI agent interface for unified task planning across robot platforms, directly improving Dimension B and D scores.
+MCP integration is explicitly part of USL Dimension B scoring criteria. The TrialMCP provides the standardized AI agent interface for unified task planning across robot platforms, directly improving Dimension B and D scores.
 
 ---
 
 ## Federated Learning Integration
 
-The TrialMCP Pack integrates with the five-pillar federated learning architecture for multi-site oncology trials:
+The TrialMCP integrates with the five-pillar federated learning architecture for multi-site oncology trials:
 
 | Pillar | Focus | TrialMCP Integration |
 |--------|-------|---------------------|
