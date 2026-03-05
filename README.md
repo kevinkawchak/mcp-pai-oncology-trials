@@ -15,6 +15,10 @@ Point-to-point integrations between robotic platforms and clinical infrastructur
 
 ---
 
+Three research papers presenting TrialMCP from complementary perspectives, published under DOI [10.5281/zenodo.18870961](https://doi.org/10.5281/zenodo.18870961).
+
+---
+
 ## Table of Contents
 
 - [Architecture Overview](#architecture-overview)
