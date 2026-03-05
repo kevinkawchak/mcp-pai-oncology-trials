@@ -7,6 +7,7 @@
 ![MCP Protocol](https://img.shields.io/badge/protocol-MCP-purple)
 ![Date March 2026](https://img.shields.io/badge/date-March%202026-orange)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.18869776-blue)](https://doi.org/10.5281/zenodo.18869776)
+[![Contributors](https://img.shields.io/badge/contributors-%40kevinkawchak%20%7C%20%40claude%20%7C%20%40codex-black)](#team-and-collaboration)
 
 **TrialMCP Pack** -- A suite of open Model Context Protocol (MCP) servers and reference clients enabling autonomous oncology trial robots and AI agents to interface with clinical systems: scheduling, eConsent, EDC/eSource repositories, imaging archives, and laboratory systems.
 

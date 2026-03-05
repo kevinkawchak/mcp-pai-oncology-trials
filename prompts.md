@@ -59,3 +59,27 @@ Open-source deliverables
 * trialmcp-fhir, trialmcp-dicom, trialmcp-ledger
 * trialmcp-authz (policy templates)
 * Security playbook + reproducible hardening guides
+
+---
+
+## Peer Review Prompt (v0.1.1)
+
+Your goal for the mcp-pai-oncology-trials repository is to provide recommendations regarding code fixes and repo fixes in order to make TrialMCP Pack ready for a full-length academic style paper. Be sure to provide recommended fixes to /clients, /datasets, and /tests directories code and files. Most importantly, provide code and file fix recommendations (add/remove/modify) to the /servers directory. Only recommendations are needed, no fixes. Also include what other files and directories should be included on main that are relevant to the project. Place your exact output in a new /peer-review directory markdown file based on this version. Claude Code will then utilize your file in future steps to then create a new version based on your recommendations. 
+
+Provide a new proposed title for the existing mcp-pai-oncology-trials repository (if different from “MCP Servers for Physical AI Oncology Clinical Trial Systems”) then after making code fix and repo fix recommendations, provide a new title (if different from “MCP Servers for Physical AI Oncology Clinical Trial Systems”). Make sure the @codex icon logo will show on main alongside the user and @claude. 
+
+Make sure to clone the current repo. Place the new release notes in releases.md under main using the format below. Do not make any code fixes or file fixes, only recommendations. Provide an updated changelog.md (v0.1.1). Provide a copy of this  exact prompt under a main prompts.md file. When you are finished, auto-push the update to GitHub on your own for my review. The user will then review your updates in GitHub prior to finalization.
+
+“FORMAT”
+Release title
+v0.1.1 -
+
+## Summary
+
+## Features
+
+## Contributors
+@kevinkawchak
+@codex
+
+## Notes
