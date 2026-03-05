@@ -1,0 +1,134 @@
+{
+  "description": "Synthetic DICOM study index for oncology trial imaging",
+  "studies": [
+    {
+      "study_instance_uid": "1.2.826.0.1.3680043.8.1055.1.20260301.1",
+      "patient_id": "patient-001",
+      "patient_name": "SyntheticDoe^Jane",
+      "study_date": "2026-02-15",
+      "study_description": "CT Chest with Contrast - Baseline",
+      "modality": "CT",
+      "accession_number": "ACC-2026-00001",
+      "referring_physician": "Dr. SyntheticPI",
+      "institution": "Synthetic Oncology Center - Site A",
+      "series": [
+        {
+          "series_instance_uid": "1.2.826.0.1.3680043.8.1055.1.20260301.1.1",
+          "modality": "CT",
+          "description": "Axial Chest CT 1.0mm",
+          "instance_count": 350
+        },
+        {
+          "series_instance_uid": "1.2.826.0.1.3680043.8.1055.1.20260301.1.2",
+          "modality": "CT",
+          "description": "Coronal Reconstruction 3.0mm",
+          "instance_count": 120
+        }
+      ],
+      "recist_measurements": {
+        "target_lesions": [
+          {
+            "lesion_id": "TL-001",
+            "location": "Right upper lobe",
+            "longest_diameter_mm": 32.0,
+            "measurement_date": "2026-02-15"
+          },
+          {
+            "lesion_id": "TL-002",
+            "location": "Right hilar lymph node",
+            "longest_diameter_mm": 18.5,
+            "measurement_date": "2026-02-15"
+          }
+        ],
+        "sum_of_diameters_mm": 50.5,
+        "overall_response": "Baseline"
+      }
+    },
+    {
+      "study_instance_uid": "1.2.826.0.1.3680043.8.1055.1.20260301.2",
+      "patient_id": "patient-002",
+      "patient_name": "SyntheticSmith^John",
+      "study_date": "2026-02-20",
+      "study_description": "MR Abdomen - Liver Metastasis Evaluation",
+      "modality": "MR",
+      "accession_number": "ACC-2026-00002",
+      "referring_physician": "Dr. SyntheticPI",
+      "institution": "Synthetic Oncology Center - Site B",
+      "series": [
+        {
+          "series_instance_uid": "1.2.826.0.1.3680043.8.1055.1.20260301.2.1",
+          "modality": "MR",
+          "description": "T2 Axial HASTE",
+          "instance_count": 45
+        },
+        {
+          "series_instance_uid": "1.2.826.0.1.3680043.8.1055.1.20260301.2.2",
+          "modality": "MR",
+          "description": "DWI b800",
+          "instance_count": 30
+        },
+        {
+          "series_instance_uid": "1.2.826.0.1.3680043.8.1055.1.20260301.2.3",
+          "modality": "MR",
+          "description": "Post-contrast T1 Axial",
+          "instance_count": 45
+        }
+      ],
+      "recist_measurements": {
+        "target_lesions": [
+          {
+            "lesion_id": "TL-001",
+            "location": "Liver segment VII",
+            "longest_diameter_mm": 24.0,
+            "measurement_date": "2026-02-20"
+          }
+        ],
+        "sum_of_diameters_mm": 24.0,
+        "overall_response": "Baseline"
+      }
+    },
+    {
+      "study_instance_uid": "1.2.826.0.1.3680043.8.1055.1.20260301.3",
+      "patient_id": "patient-003",
+      "patient_name": "SyntheticJones^Maria",
+      "study_date": "2026-02-25",
+      "study_description": "PET/CT Whole Body - Restaging",
+      "modality": "PT",
+      "accession_number": "ACC-2026-00003",
+      "referring_physician": "Dr. SyntheticPI",
+      "institution": "Synthetic Oncology Center - Site A",
+      "series": [
+        {
+          "series_instance_uid": "1.2.826.0.1.3680043.8.1055.1.20260301.3.1",
+          "modality": "PT",
+          "description": "PET WB FDG",
+          "instance_count": 250
+        },
+        {
+          "series_instance_uid": "1.2.826.0.1.3680043.8.1055.1.20260301.3.2",
+          "modality": "CT",
+          "description": "CT WB Low Dose",
+          "instance_count": 400
+        }
+      ],
+      "recist_measurements": {
+        "target_lesions": [
+          {
+            "lesion_id": "TL-001",
+            "location": "Left breast",
+            "longest_diameter_mm": 28.0,
+            "measurement_date": "2026-02-25"
+          },
+          {
+            "lesion_id": "TL-002",
+            "location": "Left axillary lymph node",
+            "longest_diameter_mm": 15.0,
+            "measurement_date": "2026-02-25"
+          }
+        ],
+        "sum_of_diameters_mm": 43.0,
+        "overall_response": "Baseline"
+      }
+    }
+  ]
+}
