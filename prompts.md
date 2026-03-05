@@ -198,3 +198,15 @@ Open-source deliverables
 * trialmcp-fhir, trialmcp-dicom, trialmcp-ledger
 * trialmcp-authz (policy templates)
 * Security playbook + reproducible hardening guides
+
+---
+
+## ChatGPT Perspectives Prompt 
+
+Instead, based on the repo, provide 5 different perspectives Claude code could take to publish the paper to different audiences. 
+
+---
+
+## ChatGPT Paper Topic Prompt 
+
+Based on the following LinkedIn profile: provide a Top 10 detailed list regarding what Claude Code GitHub projects should be pursued that would bring physical AI oncology clinical trials closer to reality. Each of your recommendations of course should be novel, awesome, and make the new industry real to the pharmaceutical industry, regulatory, and AI communities in using autonomous robots at scale in oncology clinical trials. https://www.linkedin.com/in/kevin-kawchak-38b52a4a
