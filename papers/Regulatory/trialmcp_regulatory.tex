@@ -1,0 +1,644 @@
+\documentclass[10pt,letterpaper]{article}
+\usepackage{trialmcp_regulatory}
+
+\begin{document}
+
+% ============================================================================
+% TITLE PAGE
+% ============================================================================
+\begin{center}
+{\LARGE\bfseries\color{headerblue} TrialMCP: MCP Servers for Physical AI\\[4pt]
+Oncology Clinical Trial Systems ---\\[4pt]
+Regulatory}\\[16pt]
+
+{\large Kevin Kawchak}\\[4pt]
+{\normalsize CEO, ChemicalQDevice}\\[2pt]
+{\small\href{mailto:kevink@chemicalqdevice.com}{kevink@chemicalqdevice.com}}\\[2pt]
+{\small ORCID: \href{https://orcid.org/0009-0007-5457-8667}{0009-0007-5457-8667}}\\[12pt]
+
+{\normalsize March 5, 2026}\\[8pt]
+
+{\small DOI: \href{https://doi.org/10.5281/zenodo.18870961}{10.5281/zenodo.18870961}}\\[16pt]
+\end{center}
+
+\noindent\textbf{Keywords:} 21 CFR Part 11, ICH-GCP E6(R2), HIPAA Safe Harbor, audit trail, tamper-evident ledger, role-based access control, deny-by-default, compliance validation, MCP servers, clinical trial quality, electronic records, de-identification, computer system validation
+
+\vspace{12pt}
+
+% ============================================================================
+% ABSTRACT
+% ============================================================================
+\section*{Abstract}
+
+Autonomous robotic platforms in oncology clinical trials introduce novel regulatory challenges: every tool invocation by a robot agent constitutes an electronic record subject to 21 CFR Part 11, ICH-GCP E6(R2), and HIPAA privacy requirements. This paper presents the regulatory, quality, and compliance architecture of TrialMCP, a suite of five Model Context Protocol (MCP) servers designed with compliance-first principles. We detail the deny-by-default authorization model with four pre-configured roles, the HIPAA Safe Harbor de-identification pipeline implementing all 18 identifier categories, the SHA-256 hash-chained audit ledger providing tamper-evident records with replayable traces, and the machine-readable error taxonomy enabling structured incident classification. The validation approach encompasses 39 tests across security (SSRF prevention, injection defense, permission escalation, replay attack detection, token expiry enforcement), audit completeness (every tool call produces a signed record), and integration scenarios (end-to-end workflow verification with cross-server trace linkage). We map each TrialMCP control to its regulatory requirement, present the permission matrix by role, and describe the verification methodology that produces a defensible validation package. TrialMCP v0.2.0 demonstrates that MCP-based interoperability layers can be designed compliance-first, providing inspection-ready audit trails, least-privilege access enforcement, and tamper-evident electronic records for Physical AI clinical trial operations.
+
+\vspace{8pt}
+
+% ============================================================================
+% TABLE OF CONTENTS
+	ableofcontents
+% ============================================================================
+
+% ============================================================================
+% 1. INTRODUCTION
+% ============================================================================
+\section{Introduction}
+
+\subsection{Regulatory Context for Physical AI in Clinical Trials}
+
+The introduction of autonomous robotic systems into oncology clinical trials creates a new class of regulated electronic records. When a Franka Emika Panda cobot (USL score 7.4) queries a DICOM imaging archive for pre-surgical planning, or a da Vinci dVRK surgical robot (USL 7.1) retrieves a patient's treatment protocol from a FHIR repository, each tool invocation constitutes an electronic record under 21 CFR Part 11 \cite{cfr21part11}. These records must be:
+
+\begin{itemize}[leftmargin=2em]
+    \item \textbf{Attributable}: Linked to a specific actor (human or robot agent)
+    \item \textbf{Legible}: Machine-readable and human-interpretable
+    \item \textbf{Contemporaneous}: Timestamped at the time of creation
+    \item \textbf{Original}: Preserved in their original form
+    \item \textbf{Accurate}: Protected against unauthorized modification
+\end{itemize}
+
+These ALCOA principles, extended by ICH-GCP E6(R2) \cite{ichgcp2016}, govern all electronic records in clinical trials. TrialMCP implements these requirements at the protocol level, ensuring that compliance is inherent to the architecture rather than bolted on.
+
+\subsection{Compliance-First Design Philosophy}
+
+TrialMCP adopts a compliance-first design approach where regulatory requirements drive architectural decisions:
+
+\begin{enumerate}[leftmargin=2em]
+    \item \textbf{Deny-by-default access}: No agent can access any tool without an explicit ALLOW rule
+    \item \textbf{De-identification by default}: All patient data passes through HIPAA Safe Harbor processing before return
+    \item \textbf{Audit by default}: Every tool invocation produces a signed audit record in the hash chain
+    \item \textbf{Tamper evidence by default}: SHA-256 hash chains detect any record modification or deletion
+    \item \textbf{Least privilege by default}: Roles are scoped to the minimum required tool access
+\end{enumerate}
+
+\subsection{Paper Scope}
+
+This paper presents the regulatory, quality, and compliance perspective of TrialMCP, addressing:
+\begin{itemize}[leftmargin=2em]
+    \item Compliance claims and their regulatory basis
+    \item Controls mapping from requirements to implementation
+    \item Verification approach with test evidence
+    \item Operational procedures for compliance officers and auditors
+    \item Limitations, assumptions, and future compliance roadmap
+\end{itemize}
+
+% ============================================================================
+% 2. METHODS
+% ============================================================================
+\section{Methods}
+
+\subsection{Regulatory Requirements Mapping}
+
+TrialMCP maps each compliance control to its regulatory source:
+
+\begin{table}[H]
+\centering
+\caption{Regulatory requirements to TrialMCP controls mapping}
+\label{tab:regmap}
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Regulation} & \textbf{Requirement} & \textbf{TrialMCP Control} \\
+\midrule
+21 CFR 11.10(a) & System validation & 39-test validation suite across 3 categories \\
+21 CFR 11.10(b) & Readable copies & JSON-serialized audit records with replay \\
+21 CFR 11.10(c) & Record protection & SHA-256 hash chain, append-only ledger \\
+21 CFR 11.10(d) & Access control & RBAC with deny-by-default, 4 roles \\
+21 CFR 11.10(e) & Audit trail & Hash-chained ledger with tamper detection \\
+21 CFR 11.10(k) & Authority checks & \texttt{authz\_evaluate} with policy decision traces \\
+ICH-GCP 5.5.3 & Electronic records & Complete audit trail for all MCP tool calls \\
+HIPAA 164.514 & Safe Harbor & 18-identifier de-identification pipeline \\
+ISO 14971 & Risk management & Permission policies, error taxonomy \\
+IEC 80601-2-77 & Robot safety & Safety-constrained execution patterns \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Audit Hash Chain Architecture}
+
+The trialmcp-ledger implements a SHA-256 hash-chained audit ledger satisfying 21 CFR Part 11 electronic records requirements:
+
+\begin{lstlisting}[title={\textbf{Audit Hash Chain Structure}}]
+  +------------------+     +------------------+     +------------------+
+  |  GENESIS BLOCK   |     |  AUDIT RECORD 1  |     |  AUDIT RECORD 2  |
+  |                  |     |                  |     |                  |
+  |  prev: 000...0   |---->|  prev: hash(G)   |---->|  prev: hash(R1)  |
+  |  server: system  |     |  server: fhir    |     |  server: dicom   |
+  |  tool: init      |     |  tool: fhir_read |     |  tool: dicom_qry |
+  |  caller: system  |     |  caller: robot-1 |     |  caller: robot-1 |
+  |  hash: SHA-256   |     |  hash: SHA-256   |     |  hash: SHA-256   |
+  +------------------+     +------------------+     +------------------+
+\end{lstlisting}
+
+Each \texttt{AuditRecord} contains seven fields that are canonically serialized (JSON, sorted keys) and hashed:
+
+\begin{lstlisting}[language=Python,title={\textbf{Audit Record Hash Computation (v0.2.0)}}]
+def _compute_hash(self) -> str:
+    content = json.dumps({
+        "audit_id": self.audit_id,
+        "timestamp": self.timestamp,
+        "server": self.server,
+        "tool": self.tool,
+        "caller_id": self.caller_id,
+        "parameters": self.parameters,
+        "result_summary": self.result_summary,
+        "previous_hash": self.previous_hash,
+    }, sort_keys=True)
+    return hashlib.sha256(content.encode()).hexdigest()
+\end{lstlisting}
+
+Chain properties:
+\begin{itemize}[leftmargin=2em]
+    \item \textbf{Append-only}: Records cannot be modified or deleted after creation
+    \item \textbf{Hash-linked}: Each record includes the SHA-256 hash of its predecessor
+    \item \textbf{Tamper-evident}: Any modification to any record breaks the chain
+    \item \textbf{Replayable}: Full trace can be replayed for incident review
+    \item \textbf{Verifiable}: \texttt{ledger\_verify} recomputes all hashes and validates all links
+\end{itemize}
+
+\subsection{HIPAA Safe Harbor De-identification Pipeline}
+
+The trialmcp-fhir server implements HIPAA Safe Harbor de-identification (45 CFR 164.514(b)) \cite{hipaa1996} with the following controls:
+
+\begin{table}[H]
+\centering
+\caption{HIPAA Safe Harbor 18-identifier de-identification controls}
+\label{tab:hipaa}
+\small
+\begin{tabularx}{\textwidth}{c l X}
+\toprule
+\textbf{\#} & \textbf{Identifier} & \textbf{TrialMCP Action} \\
+\midrule
+1 & Names & Removed from Patient resources \\
+2 & Geographic data & Address field removed \\
+3 & Dates & Birth date generalized to year only \\
+4 & Phone numbers & Telecom field removed \\
+5 & Fax numbers & Telecom field removed \\
+6 & Email addresses & Telecom field removed \\
+7 & SSN & Identifier field removed \\
+8 & Medical record numbers & Pseudonymized via HMAC-SHA256 \\
+9 & Health plan IDs & Identifier field removed \\
+10 & Account numbers & Identifier field removed \\
+11 & Certificate/license & Identifier field removed \\
+12 & Vehicle identifiers & Not applicable (removed if present) \\
+13 & Device identifiers & Not applicable (removed if present) \\
+14 & URLs & Identifier field removed \\
+15 & IP addresses & Not stored \\
+16 & Biometric identifiers & Not applicable (removed if present) \\
+17 & Full-face photos & Not applicable (removed if present) \\
+18 & Other unique IDs & Identifier field removed \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The pseudonymization function uses HMAC-SHA256 with a site-specific salt:
+
+\begin{lstlisting}[language=Python,title={\textbf{HMAC-SHA256 Pseudonymization (v0.2.0)}}]
+def pseudonymize_id(self, identifier: str) -> str:
+    h = hashlib.sha256(
+        f"{self._salt}:{identifier}".encode()
+    )
+    return f"pseudo-{h.hexdigest()[:16]}"
+\end{lstlisting}
+
+Subject references in clinical resources (Condition, Observation, MedicationAdministration, AdverseEvent) are also pseudonymized, ensuring referential consistency across de-identified resources.
+
+\subsection{Authorization Policy Engine}
+
+The trialmcp-authz server implements a policy decision point (PDP) with deny-by-default semantics:
+
+\begin{lstlisting}[title={\textbf{Authorization Decision Flow}}]
+  Agent Request
+       |
+       v
+  +--------------------+
+  | Match Policy Rules |  (role, server, tool)
+  +--------------------+
+       |
+       +--- Any DENY match? ---> DENY (explicit deny precedence)
+       |
+       +--- Any ALLOW match? --> ALLOW (with trace)
+       |
+       +--- No match? ---------> DENY (deny-by-default)
+       |
+       v
+  +--------------------+
+  | Return Decision    |
+  | + Matching Trace   |  (rule_id, effect for each match)
+  +--------------------+
+\end{lstlisting}
+
+The engine returns a policy decision trace with every evaluation, enabling auditors to verify the exact rules that contributed to each authorization decision.
+
+\subsection{Permission Matrix by Role}
+
+\begin{table}[H]
+\centering
+\caption{Complete permission matrix: role $\times$ server $\times$ tool access}
+\label{tab:perms}
+\small
+\begin{tabularx}{\textwidth}{l l l c}
+\toprule
+\textbf{Role} & \textbf{Server} & \textbf{Tools} & \textbf{Effect} \\
+\midrule
+trial\_coordinator & trialmcp-fhir & All (wildcard) & ALLOW \\
+trial\_coordinator & trialmcp-dicom & All (wildcard) & ALLOW \\
+robot\_agent & trialmcp-fhir & fhir\_read, fhir\_study\_status & ALLOW \\
+robot\_agent & trialmcp-dicom & dicom\_query, dicom\_retrieve\_pointer & ALLOW \\
+data\_monitor & trialmcp-fhir & fhir\_search, fhir\_study\_status & ALLOW \\
+data\_monitor & trialmcp-dicom & dicom\_query & ALLOW \\
+data\_monitor & trialmcp-provenance & provenance\_register\_source & DENY \\
+auditor & trialmcp-ledger & All (wildcard) & ALLOW \\
+All roles & trialmcp-ledger & ledger\_chain\_status, ledger\_verify & ALLOW \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Nine default policy rules are loaded at server initialization. The \texttt{deny-provenance-write} rule demonstrates explicit DENY precedence: even if a future ALLOW rule were added for \texttt{data\_monitor} on \texttt{trialmcp-provenance}, the explicit DENY would take priority.
+
+\subsection{Error Taxonomy}
+
+TrialMCP v0.2.0 introduces a shared error taxonomy with machine-readable error codes (introduced in the \texttt{servers/common} module):
+
+\begin{table}[H]
+\centering
+\caption{Machine-readable error codes for structured incident classification}
+\label{tab:errors}
+\small
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Error Code} & \textbf{Description} \\
+\midrule
+\texttt{AUTHZ\_DENIED} & Authorization denied by policy engine \\
+\texttt{VALIDATION\_FAILED} & Input validation failure (SSRF prevention, format check) \\
+\texttt{NOT\_FOUND} & Requested resource does not exist \\
+\texttt{INTERNAL\_ERROR} & Unexpected server error \\
+\texttt{TOKEN\_EXPIRED} & Session token past expiration timestamp \\
+\texttt{TOKEN\_REVOKED} & Session token explicitly revoked \\
+\texttt{PERMISSION\_DENIED} & Role lacks permission for requested operation \\
+\texttt{INVALID\_INPUT} & Malformed or unrecognized input \\
+\texttt{RATE\_LIMITED} & Request rate limit exceeded \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Input Validation and SSRF Prevention}
+
+Three validation functions in \texttt{servers/common/\_\_init\_\_.py} protect against injection and SSRF:
+
+\begin{lstlisting}[language=Python,title={\textbf{Input Validation Functions (v0.2.0)}}]
+_URL_PATTERN = re.compile(r"https?://", re.IGNORECASE)
+_DICOM_UID_PATTERN = re.compile(r"^[\d.]+$")
+_FHIR_ID_PATTERN = re.compile(r"^[A-Za-z0-9\-._]+$")
+
+def validate_fhir_id(value: str) -> bool:
+    if _URL_PATTERN.search(value):
+        return False
+    return bool(_FHIR_ID_PATTERN.match(value))
+
+def validate_dicom_uid(value: str) -> bool:
+    if _URL_PATTERN.search(value):
+        return False
+    return bool(_DICOM_UID_PATTERN.match(value))
+\end{lstlisting}
+
+% ============================================================================
+% 3. RESULTS
+% ============================================================================
+\section{Results}
+
+\subsection{Verification Test Evidence}
+
+The v0.2.0 validation suite produces 39 test results across three categories:
+
+\subsubsection{Security Tests (18 tests)}
+
+\begin{table}[H]
+\centering
+\caption{Security test evidence: 18 tests, all passing}
+\label{tab:sectests}
+\small
+\begin{tabularx}{\textwidth}{l X c}
+\toprule
+\textbf{Test Class} & \textbf{Tests} & \textbf{Count} \\
+\midrule
+SSRF Prevention & URL in FHIR resource ID rejected; encoded URL variant rejected; URL in DICOM UID rejected & 3 \\
+Injection Prevention & JSON injection in FHIR search; SQL injection in ledger append & 2 \\
+Permission Escalation & Auditor denied SERIES query; monitor denied DICOM retrieve; unknown role denied; DENY overrides ALLOW & 4 \\
+Replay Prevention & Hash chain integrity; token revocation; token expiry enforcement & 3 \\
+Health Endpoints & FHIR, DICOM, authz, ledger health status & 4 \\
+Policy Traces & Allow decision with trace; deny decision with trace & 2 \\
+\midrule
+\textbf{Total} & & \textbf{18} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsubsection{Audit Completeness Tests (12 tests)}
+
+\begin{table}[H]
+\centering
+\caption{Audit completeness test evidence: 12 tests, all passing}
+\label{tab:audittests}
+\small
+\begin{tabularx}{\textwidth}{l X c}
+\toprule
+\textbf{Test Class} & \textbf{Tests} & \textbf{Count} \\
+\midrule
+FHIR Audit & fhir\_read, fhir\_search, patient\_lookup, study\_status & 4 \\
+DICOM Audit & dicom\_query produces audit; denied requests produce audit & 2 \\
+Ledger Integrity & 10-record chain integrity; genesis hash verification; replay ordering & 3 \\
+Provenance Audit & register\_source, record\_access, verify\_integrity & 3 \\
+\midrule
+\textbf{Total} & & \textbf{12} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsubsection{Integration Tests (9 tests)}
+
+\begin{table}[H]
+\centering
+\caption{Integration test evidence: 9 tests, all passing}
+\label{tab:inttests}
+\small
+\begin{tabularx}{\textwidth}{l X c}
+\toprule
+\textbf{Test Class} & \textbf{Tests} & \textbf{Count} \\
+\midrule
+Robot Workflow & Authentication; task order fetch; imaging retrieval; evidence upload; full 5-step workflow & 5 \\
+Verification & Audit chain after workflow; de-identification in responses; permission enforcement; cross-server trace linkage & 4 \\
+\midrule
+\textbf{Total} & & \textbf{9} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{De-identification Verification}
+
+The integration test \texttt{test\_deidentification\_in\_workflow} verifies HIPAA Safe Harbor compliance on Patient resources:
+
+\begin{lstlisting}[language=Python,title={\textbf{De-identification Verification Test}}]
+def test_deidentification_in_workflow(self) -> None:
+    result = self.fhir.handle_tool_call(
+        "fhir_read",
+        {"resource_type": "Patient",
+         "resource_id": "patient-001"}
+    )
+    patient = result["resource"]
+    assert "name" not in patient      # Name removed
+    assert "address" not in patient   # Address removed
+    assert patient["birthDate"] == "1965"  # Year only
+    assert patient["id"].startswith("pseudo-")  # Pseudonymized
+\end{lstlisting}
+
+\subsection{Chain Integrity Verification}
+
+The \texttt{ledger\_verify} tool recomputes every hash in the chain and validates all predecessor links:
+
+\begin{lstlisting}[title={\textbf{Chain Verification Process}}]
+  For each record R[i] in the chain:
+    1. Recompute SHA-256 hash of R[i]'s content
+    2. Compare with stored record_hash
+       -> Mismatch indicates record tampering
+    3. Compare R[i].previous_hash with R[i-1].record_hash
+       -> Mismatch indicates chain link breakage
+    4. For R[0]: verify previous_hash == GENESIS (64 zeros)
+
+  Result: { valid: true/false, chain_length: N, errors: [...] }
+\end{lstlisting}
+
+\subsection{Token Lifecycle Security}
+
+Token management enforces the complete lifecycle:
+
+\begin{lstlisting}[title={\textbf{Token Lifecycle State Machine}}]
+  ISSUED -----> VALID -----> EXPIRED
+    |                          ^
+    |                          | (expires_at reached)
+    +--------> REVOKED         |
+               (explicit       |
+                revocation)    |
+                               |
+  Zero-TTL tokens transition directly:
+  ISSUED -----> EXPIRED (immediate rejection)
+\end{lstlisting}
+
+The v0.2.0 test suite includes a zero-TTL token test that verifies immediate expiry enforcement:
+
+\begin{lstlisting}[language=Python,title={\textbf{Token Expiry Test (v0.2.0)}}]
+def test_token_expiry_enforcement(self) -> None:
+    server = AuthzMCPServer()
+    token = server.handle_tool_call(
+        "authz_issue_token",
+        {"caller_id": "test", "role": "robot_agent",
+         "expires_seconds": 0}
+    )
+    result = server.handle_tool_call(
+        "authz_validate_token",
+        {"token_id": token["token_id"]}
+    )
+    assert result["valid"] is False
+\end{lstlisting}
+
+\subsection{Cross-Server Trace Completeness}
+
+The integration test \texttt{test\_cross\_server\_trace} verifies end-to-end audit linkage:
+
+\begin{lstlisting}[title={\textbf{Cross-Server Audit Trace Verification}}]
+  Workflow:  authz -> fhir -> dicom -> ledger -> provenance
+                |        |        |        |           |
+                v        v        v        v           v
+  Ledger:   [auth]   [fhir]   [dicom]  [evidence]  [prov]
+              |        |        |        |           |
+              +--------+--------+--------+-----------+
+                              |
+                     All linked by SHA-256
+                     hash chain in ledger
+\end{lstlisting}
+
+The test confirms that the ledger contains records from both \texttt{trialmcp-fhir} and \texttt{trialmcp-dicom} servers, and that the full chain remains valid after a complete workflow execution.
+
+% ============================================================================
+% 4. DISCUSSION
+% ============================================================================
+\section{Discussion}
+
+\subsection{21 CFR Part 11 Compliance Analysis}
+
+TrialMCP's audit ledger addresses five key 21 CFR Part 11 requirements:
+
+\begin{enumerate}[leftmargin=2em]
+    \item \textbf{11.10(a) System validation}: The 39-test suite provides evidence of system validation, covering security controls, audit completeness, and integration correctness. The test expansion from 30 (v0.1.0) to 39 (v0.2.0) demonstrates ongoing validation maintenance.
+
+    \item \textbf{11.10(c) Record protection}: The append-only, hash-chained ledger prevents record modification or deletion. Any tampering is detected by \texttt{ledger\_verify}, which recomputes all hashes.
+
+    \item \textbf{11.10(d) Access control}: Deny-by-default RBAC with four roles and nine policy rules ensures that access is explicitly granted. The permission matrix is auditable via \texttt{authz\_list\_policies}.
+
+    \item \textbf{11.10(e) Audit trail}: Every MCP tool call across all five servers produces a signed audit record. The \texttt{ledger\_replay} tool generates sequential traces for compliance review.
+
+    \item \textbf{11.10(k) Authority checks}: The \texttt{authz\_evaluate} tool checks role-server-tool authorization before every operation. Policy decision traces document the exact rules that contributed to each decision.
+\end{enumerate}
+
+\subsection{ICH-GCP Traceability}
+
+ICH-GCP E6(R2) \cite{ichgcp2016} requires that electronic records maintain complete traceability. TrialMCP achieves this through:
+
+\begin{itemize}[leftmargin=2em]
+    \item \textbf{Actor identification}: Every audit record includes \texttt{caller\_id} identifying the agent (human or robot)
+    \item \textbf{Timestamp precision}: ISO 8601 UTC timestamps on all records
+    \item \textbf{Operation detail}: Server name, tool name, and parameters captured in each record
+    \item \textbf{Result tracking}: \texttt{result\_summary} field captures the outcome of each operation
+    \item \textbf{Chain linkage}: SHA-256 hash chain provides ordering and integrity guarantees
+\end{itemize}
+
+\subsection{Defensible Validation Package}
+
+The TrialMCP validation package comprises:
+
+\begin{lstlisting}[title={\textbf{Validation Package Contents}}]
+  VALIDATION PACKAGE STRUCTURE
+  ============================
+  1. Test Suite (39 tests)
+     +-- tests/security/test_ssrf_injection.py     (18 tests)
+     +-- tests/audit/test_audit_completeness.py    (12 tests)
+     +-- tests/integration/test_robot_workflow.py   (9 tests)
+
+  2. Regulatory Mapping (Table 1)
+     +-- 21 CFR Part 11 controls
+     +-- ICH-GCP E6(R2) requirements
+     +-- HIPAA Safe Harbor identifiers
+
+  3. Policy Documentation
+     +-- 9 default policy rules (code-as-documentation)
+     +-- Permission matrix (Table 5)
+     +-- Error taxonomy (Table 6)
+
+  4. Dataset Governance
+     +-- datasets/manifest.json (SHA-256 checksums)
+     +-- datasets/README.md (data dictionary)
+
+  5. Peer-Review Evidence
+     +-- peer-review/trialmcp_pack_v0.1.1_peer_review.md
+     +-- peer-review/v0.2.0_peer_review_response.md
+\end{lstlisting}
+
+\subsection{Data Flow Security Model}
+
+The complete data flow from agent request to de-identified response traverses five security layers:
+
+\begin{lstlisting}[title={\textbf{Privacy-Preserving Data Flow (5 Layers)}}]
+  Agent Request
+       |
+  Layer 1: TOKEN PRESENTATION
+       | Token validated (not expired, not revoked)
+       v
+  Layer 2: AUTHORIZATION (deny-by-default)
+       | authz_evaluate(role, server, tool)
+       | Check ALLOW rules, check DENY overrides
+       v
+  Layer 3: INPUT VALIDATION
+       | FHIR ID format, DICOM UID format
+       | URL rejection (SSRF prevention)
+       v
+  Layer 4: DE-IDENTIFICATION
+       | HIPAA Safe Harbor (18 identifiers)
+       | HMAC-SHA256 pseudonymization
+       v
+  Layer 5: AUDIT LOGGING
+       | SHA-256 hash chain append
+       | 21 CFR Part 11 compliance
+       v
+  De-identified Response
+\end{lstlisting}
+
+\subsection{Inspection Readiness Assessment}
+
+TrialMCP provides the following inspection readiness capabilities:
+
+\begin{itemize}[leftmargin=2em]
+    \item \textbf{Trace completeness}: Every tool call across all 23 tools is logged with full context
+    \item \textbf{Replay capability}: \texttt{ledger\_replay} generates chronologically ordered traces from any timestamp
+    \item \textbf{Integrity verification}: \texttt{ledger\_verify} confirms no record has been modified, deleted, or reordered
+    \item \textbf{Policy transparency}: \texttt{authz\_list\_policies} returns all 9 active policy rules as structured data
+    \item \textbf{Decision auditability}: Every authorization decision includes a trace of matching rules
+    \item \textbf{Health monitoring}: All 5 servers expose health endpoints for operational status verification
+\end{itemize}
+
+% ============================================================================
+% 5. LIMITATIONS AND FUTURE WORK
+% ============================================================================
+\section{Limitations and Future Work}
+
+\subsection{Current Limitations}
+
+\begin{enumerate}[leftmargin=2em]
+    \item \textbf{No cryptographic signatures}: Audit records use SHA-256 hash chains for tamper detection but lack PKI-based digital signatures. Full 21 CFR Part 11 electronic signature compliance requires integration with certificate authorities.
+
+    \item \textbf{In-memory storage}: The audit ledger is in-memory. Production deployments require persistent, write-once storage (append-only databases, immutable object storage) with backup and recovery.
+
+    \item \textbf{No W3C PROV alignment}: The provenance model uses a custom schema. Future versions should align with the W3C PROV standard for interoperability with external provenance systems.
+
+    \item \textbf{Simplified identity management}: Token-based authentication without OAuth2/OIDC integration. Production systems require enterprise identity provider integration.
+
+    \item \textbf{No adversarial testing}: The test suite covers known attack vectors but does not include fuzzing, property-based testing, or TOCTOU race condition scenarios.
+
+    \item \textbf{Synthetic data validation only}: All tests use synthetic data. Validation with real clinical data patterns (de-identified) is needed for production readiness.
+
+    \item \textbf{No signed timestamps}: Timestamps are server-generated without external time authority verification. RFC 3161 timestamping would strengthen temporal non-repudiation.
+\end{enumerate}
+
+\subsection{Future Compliance Work}
+
+\begin{itemize}[leftmargin=2em]
+    \item \textbf{PKI-based signatures}: Digital signatures on audit records using X.509 certificates
+    \item \textbf{W3C PROV alignment}: Provenance records conforming to the PROV-DM data model
+    \item \textbf{OAuth2/OIDC integration}: Enterprise identity provider support (Keycloak, Azure AD)
+    \item \textbf{Adversarial testing}: Fuzzing campaigns, property-based testing, TOCTOU scenarios
+    \item \textbf{GxP qualification}: IQ/OQ/PQ documentation for regulated deployment environments
+    \item \textbf{Part 11 assessment toolkit}: Self-assessment checklist for sites deploying TrialMCP
+\end{itemize}
+
+% ============================================================================
+% 6. CONCLUSION
+% ============================================================================
+\section{Conclusion}
+
+TrialMCP demonstrates that MCP-based interoperability layers for Physical AI clinical trial operations can be designed compliance-first. The v0.2.0 release provides deny-by-default authorization with four pre-configured roles, HIPAA Safe Harbor de-identification implementing all 18 identifier categories, SHA-256 hash-chained audit trails with replayable traces, and a machine-readable error taxonomy for structured incident classification. The 39-test validation suite---covering SSRF prevention, injection defense, permission escalation, replay attacks, token expiry enforcement, audit completeness, and cross-server trace linkage---produces a defensible validation package suitable for regulatory inspection.
+
+The compliance architecture ensures that every robot agent tool invocation constitutes a traceable, tamper-evident electronic record, satisfying the ALCOA principles required by 21 CFR Part 11 and ICH-GCP E6(R2). For QA/CSV teams, auditors, and compliance officers, TrialMCP offers inspection readiness through complete audit traces, least-privilege access enforcement, and policy decision transparency.
+
+% ============================================================================
+% REFERENCES
+% ============================================================================
+\bibliographystyle{plain}
+\bibliography{trialmcp_regulatory}
+
+% ============================================================================
+% ACKNOWLEDGMENTS
+% ============================================================================
+\section*{Acknowledgments}
+
+The author would like to acknowledge Anthropic for providing access to Claude Code Opus 4.6 for repository and paper generations; and OpenAI for providing access to GPT-5.2-Codex for peer-review recommendations, with ChatGPT 5.2 Thinking for project formulation and paper perspectives assistance.
+
+% ============================================================================
+% ETHICAL DISCLOSURES
+% ============================================================================
+\section*{Ethical Disclosures}
+
+The author of the article declares no competing interests.
+
+% ============================================================================
+% RIGHTS AND PERMISSIONS
+% ============================================================================
+\section*{Rights and Permissions}
+
+This article is distributed under the terms of the Creative Commons Attribution 4.0 International License (CC BY 4.0), which permits unrestricted use, distribution, and reproduction in any medium, provided the original author(s) and source are properly credited, a link to the Creative Commons license is provided, and any modifications made are indicated. To view a copy of this license, visit \url{https://creativecommons.org/licenses/by/4.0/}.
+
+% ============================================================================
+% CITE THIS ARTICLE
+% ============================================================================
+\section*{Cite This Article}
+
+Kawchak K. TrialMCP: MCP Servers for Physical AI Oncology Clinical Trial Systems. \textit{Zenodo}. 2026; \href{https://doi.org/10.5281/zenodo.18870961}{10.5281/zenodo.18870961}.
+
+\end{document}

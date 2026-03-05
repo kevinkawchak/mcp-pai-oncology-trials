@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcp-pai-oncology-trials"
-version = "0.2.0"
+version = "0.3.0"
 description = "MCP servers for Physical AI oncology clinical trial systems (TrialMCP Pack)"
 readme = "README.md"
 license = {text = "MIT"}
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 authors = [
     {name = "Kevin Kawchak"},
 ]
@@ -19,6 +19,7 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
@@ -40,7 +41,7 @@ Homepage = "https://github.com/kevinkawchak/mcp-pai-oncology-trials"
 Repository = "https://github.com/kevinkawchak/mcp-pai-oncology-trials"
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py310"
 line-length = 100
 
 [tool.ruff.lint]

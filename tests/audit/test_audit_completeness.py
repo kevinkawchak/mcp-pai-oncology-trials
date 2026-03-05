@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from servers.trialmcp_fhir.src.fhir_server import FHIRMCPServer
 from servers.trialmcp_dicom.src.dicom_server import DICOMMCPServer
+from servers.trialmcp_fhir.src.fhir_server import FHIRMCPServer
 from servers.trialmcp_ledger.src.ledger_server import LedgerMCPServer
 from servers.trialmcp_provenance.src.provenance_server import ProvenanceMCPServer
 
@@ -32,23 +32,17 @@ class TestFHIRAuditCompleteness:
         assert "timestamp" in record
 
     def test_fhir_search_produces_audit(self) -> None:
-        self.server.handle_tool_call(
-            "fhir_search", {"resource_type": "Observation"}
-        )
+        self.server.handle_tool_call("fhir_search", {"resource_type": "Observation"})
         assert len(self.audit_records) == 1
         assert self.audit_records[0]["tool"] == "fhir_search"
 
     def test_fhir_patient_lookup_produces_audit(self) -> None:
-        self.server.handle_tool_call(
-            "fhir_patient_lookup", {"patient_id": "patient-001"}
-        )
+        self.server.handle_tool_call("fhir_patient_lookup", {"patient_id": "patient-001"})
         assert len(self.audit_records) == 1
         assert self.audit_records[0]["tool"] == "fhir_patient_lookup"
 
     def test_fhir_study_status_produces_audit(self) -> None:
-        self.server.handle_tool_call(
-            "fhir_study_status", {"study_id": "ONCO-TRIAL-2026-001"}
-        )
+        self.server.handle_tool_call("fhir_study_status", {"study_id": "ONCO-TRIAL-2026-001"})
         assert len(self.audit_records) == 1
         assert self.audit_records[0]["tool"] == "fhir_study_status"
 

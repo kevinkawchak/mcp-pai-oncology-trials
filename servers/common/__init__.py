@@ -17,10 +17,10 @@ import re
 from datetime import datetime, timezone
 from typing import Any
 
-
 # ---------------------------------------------------------------------------
 # Machine-readable error codes  (peer-review rec 1.1)
 # ---------------------------------------------------------------------------
+
 
 class ErrorCode:
     """Stable, machine-readable error codes returned by all servers."""
@@ -79,6 +79,7 @@ def validate_no_url(value: str) -> bool:
 # ---------------------------------------------------------------------------
 # Health / readiness helpers  (peer-review rec 1.7)
 # ---------------------------------------------------------------------------
+
 
 def health_status(server_name: str, version: str) -> dict[str, Any]:
     """Return a standard health-check response."""

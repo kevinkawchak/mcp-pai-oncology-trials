@@ -1,0 +1,682 @@
+\documentclass[10pt,letterpaper]{article}
+\usepackage{trialmcp_interop}
+
+\begin{document}
+
+% ============================================================================
+% TITLE PAGE
+% ============================================================================
+\begin{center}
+{\LARGE\bfseries\color{headerblue} TrialMCP: MCP Servers for Physical AI\\[4pt]
+Oncology Clinical Trial Systems ---\\[4pt]
+Interoperability}\\[16pt]
+
+{\large Kevin Kawchak}\\[4pt]
+{\normalsize CEO, ChemicalQDevice}\\[2pt]
+{\small\href{mailto:kevink@chemicalqdevice.com}{kevink@chemicalqdevice.com}}\\[2pt]
+{\small ORCID: \href{https://orcid.org/0009-0007-5457-8667}{0009-0007-5457-8667}}\\[12pt]
+
+{\normalsize March 5, 2026}\\[8pt]
+
+{\small DOI: \href{https://doi.org/10.5281/zenodo.18870961}{10.5281/zenodo.18870961}}\\[16pt]
+\end{center}
+
+\noindent\textbf{Keywords:} healthcare interoperability, FHIR R4, DICOM, Model Context Protocol, MCP servers, HL7, IHE, PACS integration, clinical data exchange, agent-tool interface, federated deployment, HAPI FHIR, Orthanc, dcm4chee, provenance gateway, role-scoped capabilities
+
+\vspace{12pt}
+
+% ============================================================================
+% ABSTRACT
+% ============================================================================
+\section*{Abstract}
+
+Healthcare interoperability in multi-site oncology clinical trials requires composing established standards---FHIR R4 for clinical data, DICOM for medical imaging---with emerging AI agent protocols. This paper presents TrialMCP from the healthcare interoperability perspective, positioning the Model Context Protocol (MCP) as the agent-tool interface that cleanly composes with FHIR and DICOM in federated, multi-site clinical environments. We describe the capability model of five MCP servers exposing 23 tools organized by clinical domain: read-only FHIR access with integrated de-identification (4 tools), DICOM query/retrieve gating with role-based permission enforcement (4 tools), audit chain-of-custody with hash-linked integrity (5 tools), authorization policy evaluation with deny-by-default semantics (5 tools), and data provenance tracking with lineage graphs (5 tools). The architecture defines clean boundaries between the MCP protocol layer, healthcare data standards (FHIR R4, DICOM), and clinical systems (EHR, PACS), with implementation pathways through HAPI FHIR, Orthanc, and dcm4chee. We present the server and tool definitions, security gate architecture, deployment topology for federated trials, vocabulary harmonization patterns (LOINC, RxNorm, MedDRA), and conformance considerations for HL7 and IHE integration profiles. Validation across 39 tests demonstrates predictable interfaces with audit hooks at every boundary. TrialMCP v0.2.0 reduces integration complexity by replacing $N \times M$ point-to-point connectors with $N + M$ standardized interfaces, providing clean interoperability boundaries for Physical AI agents in regulated clinical environments.
+
+\vspace{8pt}
+
+% ============================================================================
+% TABLE OF CONTENTS
+	ableofcontents
+% ============================================================================
+
+% ============================================================================
+% 1. INTRODUCTION
+% ============================================================================
+\section{Introduction}
+
+\subsection{The Interoperability Challenge}
+
+Multi-site oncology clinical trials operate at the intersection of three standards ecosystems:
+
+\begin{enumerate}[leftmargin=2em]
+    \item \textbf{Clinical data standards}: FHIR R4 \cite{fhir2019r4} for structured clinical data (patients, research studies, observations, adverse events)
+    \item \textbf{Medical imaging standards}: DICOM \cite{dicom2024std} for imaging data (C-FIND queries, C-MOVE retrieval, study/series/instance hierarchy)
+    \item \textbf{AI agent protocols}: Model Context Protocol (MCP) \cite{mcp2025spec} for connecting AI tools to external data sources
+\end{enumerate}
+
+The challenge is composing these standards without creating a monolithic integration layer. Each standard serves a different purpose: FHIR defines clinical data representation, DICOM defines imaging data exchange, and MCP defines agent-tool interaction. TrialMCP positions MCP as the \textit{agent-facing interface} that cleanly mediates access to FHIR and DICOM resources.
+
+\subsection{MCP as the Agent-Tool Interface}
+
+The Model Context Protocol, standardized under the Linux Foundation AAIF, defines a protocol for AI tools to connect to external data sources. In the TrialMCP architecture, MCP serves as the boundary between:
+
+\begin{itemize}[leftmargin=2em]
+    \item \textbf{AI agents} (robot platforms, LLM-based planners, monitoring systems) that consume clinical data
+    \item \textbf{Clinical systems} (EHR, PACS, EDC, scheduling) that produce and manage clinical data
+\end{itemize}
+
+This separation produces clean interfaces: agents speak MCP, clinical systems speak FHIR/DICOM, and TrialMCP servers translate between them with authorization, de-identification, and audit at every boundary.
+
+\subsection{Paper Scope}
+
+This paper addresses the Healthcare Interoperability \& Standards perspective:
+\begin{itemize}[leftmargin=2em]
+    \item Capability model and tool surface area per server
+    \item Read-only FHIR pattern with integrated de-identification
+    \item DICOM query/retrieve gating with permission enforcement
+    \item Provenance gateway concept for cross-system lineage
+    \item Integration patterns with HAPI FHIR, Orthanc, and dcm4chee
+    \item Deployment topology for federated multi-site trials
+    \item Conformance considerations for HL7 and IHE profiles
+\end{itemize}
+
+% ============================================================================
+% 2. METHODS
+% ============================================================================
+\section{Methods}
+
+\subsection{Capability Model}
+
+TrialMCP defines five MCP servers, each with a distinct capability boundary:
+
+\begin{lstlisting}[title={\textbf{Capability Model: 5 Servers, 23 Tools}}]
+  +------------------------------------------------------------------+
+  |                    MCP CAPABILITY SURFACE                        |
+  +------------------------------------------------------------------+
+  |                                                                  |
+  |  trialmcp-authz        trialmcp-fhir        trialmcp-dicom      |
+  |  [Policy Decision]     [Clinical Data]      [Imaging Data]      |
+  |  +-----------------+   +-----------------+  +-----------------+ |
+  |  | authz_evaluate  |   | fhir_read       |  | dicom_query     | |
+  |  | authz_issue_    |   | fhir_search     |  | dicom_retrieve_ | |
+  |  |   token         |   | fhir_patient_   |  |   pointer       | |
+  |  | authz_validate_ |   |   lookup        |  | dicom_study_    | |
+  |  |   token         |   | fhir_study_     |  |   metadata      | |
+  |  | authz_list_     |   |   status        |  | dicom_recist_   | |
+  |  |   policies      |   +-----------------+  |   measurements  | |
+  |  | authz_revoke_   |                        +-----------------+ |
+  |  |   token         |                                            |
+  |  +-----------------+                                            |
+  |                                                                  |
+  |  trialmcp-ledger        trialmcp-provenance                     |
+  |  [Audit Chain]          [Data Lineage]                          |
+  |  +-----------------+   +-----------------+                      |
+  |  | ledger_append   |   | provenance_     |                      |
+  |  | ledger_verify   |   |   register_src  |                      |
+  |  | ledger_query    |   | provenance_     |                      |
+  |  | ledger_replay   |   |   record_access |                      |
+  |  | ledger_chain_   |   | provenance_     |                      |
+  |  |   status        |   |   get_lineage   |                      |
+  |  +-----------------+   | provenance_     |                      |
+  |                        |   get_actor_hst |                      |
+  |                        | provenance_     |                      |
+  |                        |   verify_intgty |                      |
+  |                        +-----------------+                      |
+  +------------------------------------------------------------------+
+\end{lstlisting}
+
+\subsection{Server and Tool Definitions}
+
+Each MCP server exposes tools with typed input schemas following the MCP tool specification:
+
+\begin{table}[H]
+\centering
+\caption{Tool input schema patterns across TrialMCP servers}
+\label{tab:schemas}
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Server} & \textbf{Tool} & \textbf{Required Input Parameters} \\
+\midrule
+trialmcp-fhir & fhir\_read & resource\_type (enum, 9 types), resource\_id (string) \\
+trialmcp-fhir & fhir\_search & resource\_type (enum), params (object, optional) \\
+trialmcp-fhir & fhir\_patient\_lookup & patient\_id (string) \\
+trialmcp-fhir & fhir\_study\_status & study\_id (string) \\
+\midrule
+trialmcp-dicom & dicom\_query & query\_level (enum), caller\_role (enum) \\
+trialmcp-dicom & dicom\_retrieve\_pointer & study\_instance\_uid (string), caller\_role (enum) \\
+trialmcp-dicom & dicom\_study\_metadata & study\_instance\_uid (string), caller\_role (enum) \\
+trialmcp-dicom & dicom\_recist\_measurements & study\_instance\_uid (string) \\
+\midrule
+trialmcp-ledger & ledger\_append & server, tool, caller\_id, result\_summary (strings) \\
+trialmcp-ledger & ledger\_verify & (none) \\
+trialmcp-ledger & ledger\_query & server, tool, caller\_id, since, limit (all optional) \\
+trialmcp-ledger & ledger\_replay & since (optional) \\
+trialmcp-ledger & ledger\_chain\_status & (none) \\
+\midrule
+trialmcp-authz & authz\_evaluate & role, server, tool (strings) \\
+trialmcp-authz & authz\_issue\_token & caller\_id, role (strings) \\
+trialmcp-authz & authz\_validate\_token & token\_id (string) \\
+trialmcp-authz & authz\_list\_policies & (none) \\
+trialmcp-authz & authz\_revoke\_token & token\_id (string) \\
+\midrule
+trialmcp-provenance & provenance\_register\_source & source\_type (enum), origin\_server, description \\
+trialmcp-provenance & provenance\_record\_access & source\_id, action (enum), actor\_id, actor\_role, tool\_call, input\_data \\
+trialmcp-provenance & provenance\_get\_lineage & source\_id (string) \\
+trialmcp-provenance & provenance\_get\_actor\_history & actor\_id (string) \\
+trialmcp-provenance & provenance\_verify\_integrity & data, expected\_hash (strings) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Read-Only FHIR Pattern}
+
+The trialmcp-fhir server implements a read-only access pattern with integrated de-identification:
+
+\begin{lstlisting}[title={\textbf{FHIR Read-Only Access Pattern with De-identification}}]
+  MCP Client                trialmcp-fhir              FHIR Data Store
+       |                         |                          |
+       | fhir_read(Patient,      |                          |
+       |   "patient-001")        |                          |
+       |------------------------>|                          |
+       |                    [1] Validate FHIR ID            |
+       |                    (reject URLs, enforce format)   |
+       |                         |                          |
+       |                    [2] Read raw resource            |
+       |                         |------------------------->|
+       |                         |<-------------------------|
+       |                         | Raw Patient resource     |
+       |                    [3] De-identify                  |
+       |                    - Remove: name, address, telecom |
+       |                    - Generalize: birthDate -> year  |
+       |                    - Pseudonymize: id -> pseudo-xxx |
+       |                         |                          |
+       |                    [4] Emit audit record            |
+       |                         |                          |
+       | De-identified Patient   |                          |
+       |<------------------------|                          |
+\end{lstlisting}
+
+\textbf{Supported FHIR R4 resource types} (9 types relevant to oncology trials):
+
+\begin{multicols}{3}
+\begin{itemize}[leftmargin=1.5em,itemsep=0pt]
+    \item Patient
+    \item ResearchStudy
+    \item ResearchSubject
+    \item Condition
+    \item MedicationAdministration
+    \item Observation
+    \item AdverseEvent
+    \item DiagnosticReport
+    \item ImagingStudy
+\end{itemize}
+\end{multicols}
+
+\subsection{DICOM Query/Retrieve Gating}
+
+The trialmcp-dicom server acts as a DICOM gateway with role-based permission enforcement:
+
+\begin{table}[H]
+\centering
+\caption{DICOM permission gating by role}
+\label{tab:dicomperm}
+\small
+\begin{tabularx}{\textwidth}{l l l c}
+\toprule
+\textbf{Role} & \textbf{Query Levels} & \textbf{Modalities} & \textbf{Retrieve} \\
+\midrule
+trial\_coordinator & PATIENT, STUDY, SERIES & CT, MR, PT, DX, CR & Yes \\
+robot\_agent & STUDY, SERIES & CT, MR, RTSTRUCT, RTPLAN & Yes \\
+data\_monitor & PATIENT, STUDY & CT, MR, PT & No \\
+auditor & STUDY only & (none) & No \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The gating model ensures that:
+\begin{itemize}[leftmargin=2em]
+    \item Robot agents access only imaging modalities relevant to their clinical tasks (CT, MR for guidance; RTSTRUCT, RTPLAN for treatment planning)
+    \item Data monitors can query but not retrieve pixel data
+    \item Auditors have minimal visibility (STUDY-level metadata only) sufficient for audit purposes
+    \item Retrieval tokens are time-limited (3600-second TTL) and scoped to specific studies
+\end{itemize}
+
+\subsection{Provenance Gateway Concept}
+
+The trialmcp-provenance server functions as a data lineage gateway that tracks every access and transformation across the system:
+
+\begin{lstlisting}[title={\textbf{Provenance Gateway: Cross-System Lineage Tracking}}]
+  Data Source Registration         Access Recording
+  +-----------------------+        +---------------------------+
+  | Source Types:          |        | Actions:                  |
+  | - fhir_bundle         |        | - read                    |
+  | - dicom_study         |        | - transform               |
+  | - scheduling          |        | - export                  |
+  | - esource             |        | - deidentify              |
+  | - econsent            |        | - aggregate               |
+  +-----------------------+        +---------------------------+
+           |                                  |
+           v                                  v
+  +---------------------------------------------------------+
+  |              PROVENANCE GRAPH (DAG)                     |
+  |                                                         |
+  |  Source --[read]--> Record --[transform]--> Record      |
+  |    |                  |                       |         |
+  |    +-- actor_id       +-- input_hash          +-- output|
+  |    +-- origin_server  +-- tool_call              _hash  |
+  |    +-- metadata       +-- actor_role                    |
+  +---------------------------------------------------------+
+           |                                  |
+           v                                  v
+  +---------------------------+   +---------------------------+
+  | Lineage Queries           |   | Integrity Verification    |
+  | get_lineage(source_id)    |   | verify_integrity(data,    |
+  | get_actor_history(actor)  |   |   expected_hash)          |
+  +---------------------------+   +---------------------------+
+\end{lstlisting}
+
+The provenance gateway records SHA-256 fingerprints for both input and output data, enabling post-hoc verification that data has not been modified in transit.
+
+\subsection{Security Gate Architecture}
+
+Every MCP tool call traverses multiple security gates before accessing clinical data:
+
+\begin{lstlisting}[title={\textbf{Security Gate Architecture (5 Gates)}}]
+  MCP Tool Call
+       |
+  GATE 1: TOKEN VALIDATION
+       | authz_validate_token (not expired, not revoked)
+       |
+  GATE 2: AUTHORIZATION POLICY
+       | authz_evaluate (role + server + tool)
+       | Deny-by-default with explicit DENY precedence
+       |
+  GATE 3: INPUT VALIDATION
+       | validate_fhir_id / validate_dicom_uid
+       | URL rejection (SSRF prevention)
+       | Format enforcement (alphanumeric / numeric-dot)
+       |
+  GATE 4: DATA DE-IDENTIFICATION
+       | HIPAA Safe Harbor (18 identifiers)
+       | HMAC-SHA256 pseudonymization
+       |
+  GATE 5: AUDIT LOGGING
+       | ledger_append (SHA-256 hash chain)
+       | provenance_record_access (lineage)
+       |
+  Secured Response
+\end{lstlisting}
+
+\subsection{Implementation Pathway: HAPI FHIR, Orthanc, dcm4chee}
+
+TrialMCP v0.2.0 uses in-memory data stores. The architecture defines clear integration pathways to production systems:
+
+\begin{table}[H]
+\centering
+\caption{Production integration pathways for TrialMCP servers}
+\label{tab:prodpath}
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{TrialMCP Server} & \textbf{Production Backend} & \textbf{Integration Pattern} \\
+\midrule
+trialmcp-fhir & HAPI FHIR \cite{hapifhir} & OAuth2-scoped REST client to HAPI FHIR R4 API; de-identification applied at the MCP layer before return \\
+trialmcp-dicom & Orthanc \cite{orthanc2024} or dcm4chee & DICOM networking (C-FIND/C-MOVE) or DICOMweb (WADO-RS/QIDO-RS) proxy; permission gating at MCP layer \\
+trialmcp-ledger & PostgreSQL or MongoDB & Append-only table/collection with hash chain; write-once storage semantics \\
+trialmcp-authz & Keycloak / Azure AD & OAuth2/OIDC token exchange; policy rules persisted in external policy store \\
+trialmcp-provenance & Graph database (Neo4j) & Provenance records as graph edges; W3C PROV-DM alignment \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Vocabulary Harmonization}
+
+Multi-site trials require consistent terminology across sites. TrialMCP supports vocabulary harmonization through:
+
+\begin{itemize}[leftmargin=2em]
+    \item \textbf{LOINC}: Laboratory observation identifiers for lab results standardization
+    \item \textbf{RxNorm}: Medication terminology for drug administration records
+    \item \textbf{MedDRA}: Medical dictionary for adverse event coding and regulatory reporting
+    \item \textbf{CTCAE v5.0}: Common Terminology Criteria for Adverse Events grading
+    \item \textbf{RECIST 1.1}: Response Evaluation Criteria in Solid Tumors for imaging assessment
+\end{itemize}
+
+The FHIR data store supports search parameters that map to these vocabularies, enabling cross-site queries with consistent coding.
+
+% ============================================================================
+% 3. RESULTS
+% ============================================================================
+\section{Results}
+
+\subsection{Tool Surface Area Analysis}
+
+The 23-tool surface area distributes across five functional domains:
+
+\begin{table}[H]
+\centering
+\caption{Tool surface area distribution by functional domain}
+\label{tab:toolarea}
+\small
+\begin{tabularx}{\textwidth}{l c c X}
+\toprule
+\textbf{Domain} & \textbf{Server} & \textbf{Tools} & \textbf{Interface Pattern} \\
+\midrule
+Authorization & trialmcp-authz & 5 & Token lifecycle + policy evaluation \\
+Clinical Data & trialmcp-fhir & 4 & Read-only FHIR R4 with de-identification \\
+Medical Imaging & trialmcp-dicom & 4 & DICOM C-FIND/C-MOVE proxy with gating \\
+Audit Trail & trialmcp-ledger & 5 & Append-only hash chain with replay \\
+Data Lineage & trialmcp-provenance & 5 & Source registration + access tracking \\
+\midrule
+\textbf{Total} & \textbf{5 servers} & \textbf{23} & \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{FHIR Resource Coverage}
+
+The trialmcp-fhir server provides access to 9 FHIR R4 resource types covering the oncology trial lifecycle:
+
+\begin{table}[H]
+\centering
+\caption{FHIR R4 resource type coverage with synthetic dataset counts}
+\label{tab:fhirres}
+\small
+\begin{tabularx}{\textwidth}{l c X}
+\toprule
+\textbf{Resource Type} & \textbf{Count} & \textbf{Clinical Purpose} \\
+\midrule
+Patient & 3 & Demographics (de-identified, year-only birth date) \\
+ResearchStudy & 2 & Phase II robotic biopsy, Phase III immunotherapy \\
+ResearchSubject & 3 & Enrollment status linking patients to studies \\
+Condition & 2 & NSCLC, colorectal cancer diagnoses \\
+Observation & 2 & Tumor size measurements, biomarker values \\
+MedicationAdministration & 1 & Pembrolizumab treatment record \\
+AdverseEvent & 1 & Grade 2 fatigue (CTCAE v5.0) \\
+DiagnosticReport & --- & Supported type (no synthetic data) \\
+ImagingStudy & --- & Supported type (no synthetic data) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{DICOM Study Coverage}
+
+The synthetic DICOM index contains 3 imaging studies with RECIST 1.1 measurements:
+
+\begin{table}[H]
+\centering
+\caption{DICOM study index with RECIST 1.1 target lesion tracking}
+\label{tab:dicomstudies}
+\small
+\begin{tabularx}{\textwidth}{l c c c X}
+\toprule
+\textbf{Study} & \textbf{Modality} & \textbf{Series} & \textbf{Targets} & \textbf{Site} \\
+\midrule
+CT Chest & CT & 2 & TL-001, TL-002 & Site A \\
+MR Abdomen & MR & 3 & TL-001 & Site B \\
+PET/CT Whole Body & PT & 2 & TL-001, TL-002 & Site A \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Integration Complexity Reduction}
+
+The MCP abstraction transforms integration complexity:
+
+\begin{lstlisting}[title={\textbf{Integration Complexity: Before and After MCP}}]
+  BEFORE (Point-to-Point):
+  +--------+     +--------+     +--------+
+  | Robot  |---->| EHR    |     | Robot  |---->| PACS   |
+  | Type A |     |        |     | Type A |     |        |
+  +--------+     +--------+     +--------+     +--------+
+  +--------+     +--------+     +--------+     +--------+
+  | Robot  |---->| EHR    |     | Robot  |---->| PACS   |
+  | Type B |     |        |     | Type B |     |        |
+  +--------+     +--------+     +--------+     +--------+
+  Connectors: N x M = 2 x 2 = 4 (grows quadratically)
+
+  AFTER (TrialMCP):
+  +--------+                                   +--------+
+  | Robot  |---> +------------------+ -------->| EHR    |
+  | Type A |     | trialmcp-fhir    |          +--------+
+  +--------+     | trialmcp-dicom   |          +--------+
+  +--------+     | trialmcp-authz   | -------->| PACS   |
+  | Robot  |---> | trialmcp-ledger  |          +--------+
+  | Type B |     | trialmcp-prov    |
+  +--------+     +------------------+
+  Connectors: N + M = 2 + 2 = 4 (grows linearly)
+\end{lstlisting}
+
+At small scale the absolute counts are similar, but at trial scale (7 robots, 6 systems), point-to-point requires 42 connectors while TrialMCP requires 13.
+
+\subsection{Cross-Server Transaction Patterns}
+
+The end-to-end robot workflow demonstrates four cross-server transaction patterns:
+
+\begin{table}[H]
+\centering
+\caption{Cross-server transaction patterns in the robot workflow}
+\label{tab:transactions}
+\small
+\begin{tabularx}{\textwidth}{c l l X}
+\toprule
+\textbf{Step} & \textbf{Primary Server} & \textbf{Audit Server} & \textbf{Transaction Pattern} \\
+\midrule
+1 & trialmcp-authz & (self-audited) & Token issuance with role binding \\
+2 & trialmcp-fhir & trialmcp-ledger & De-identified clinical data read \\
+3 & trialmcp-dicom & trialmcp-ledger & Gated imaging retrieval pointer \\
+5 & trialmcp-ledger & (self-appended) & Evidence record with hash chain \\
+6 & trialmcp-provenance & (self-audited) & Lineage record with SHA-256 fingerprints \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Federated Deployment Topology}
+
+The federated deployment model supports multi-site trials with per-site data sovereignty:
+
+\begin{lstlisting}[title={\textbf{Federated Multi-Site Deployment with Data Harmonization}}]
+       SITE A                    SITE B                    SITE C
+  +------------------+     +------------------+     +------------------+
+  | trialmcp-fhir    |     | trialmcp-fhir    |     | trialmcp-fhir    |
+  | -> HAPI FHIR     |     | -> HAPI FHIR     |     | -> HAPI FHIR     |
+  | trialmcp-dicom   |     | trialmcp-dicom   |     | trialmcp-dicom   |
+  | -> Orthanc       |     | -> dcm4chee      |     | -> Orthanc       |
+  | trialmcp-authz   |     | trialmcp-authz   |     | trialmcp-authz   |
+  | trialmcp-ledger  |     | trialmcp-ledger  |     | trialmcp-ledger  |
+  +--------|--------+     +--------|--------+     +--------|--------+
+           |                        |                        |
+           +----------- Harmonization Layer -----------------+
+           |   LOINC | RxNorm | MedDRA | RECIST 1.1         |
+           +------|------|------|------|---------------------+
+                  v      v      v      v
+  +-----------------------------------------------------------+
+  |          FEDERATED COORDINATION LAYER                     |
+  |   FedAvg / FedProx / SCAFFOLD Aggregation                |
+  |   Cross-Site Audit Sync | Differential Privacy           |
+  +-----------------------------------------------------------+
+           |
+           v
+  +-----------------------------------------------------------+
+  |      trialmcp-provenance (Central Gateway)                |
+  | Cross-Site Lineage | Data Fingerprinting | Actor History  |
+  +-----------------------------------------------------------+
+\end{lstlisting}
+
+Each site can use different FHIR and DICOM backends (HAPI vs.\ other FHIR servers, Orthanc vs.\ dcm4chee) while maintaining a consistent MCP interface to agents.
+
+% ============================================================================
+% 4. DISCUSSION
+% ============================================================================
+\section{Discussion}
+
+\subsection{Clean Boundaries Between Protocol Layers}
+
+TrialMCP enforces a three-layer separation:
+
+\begin{table}[H]
+\centering
+\caption{Three-layer protocol separation in TrialMCP}
+\label{tab:layers}
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Layer} & \textbf{Protocol} & \textbf{Responsibility} \\
+\midrule
+Agent Layer & MCP & Tool discovery, invocation, response handling \\
+Clinical Layer & FHIR R4 / DICOM & Data representation, query semantics, resource typing \\
+Infrastructure & HTTP/DICOM Net & Transport, authentication, session management \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Agents never need to understand FHIR query syntax or DICOM networking protocols. They interact with typed MCP tools that abstract the underlying clinical standards while preserving semantic fidelity.
+
+\subsection{Conformance Considerations for HL7 and IHE}
+
+TrialMCP's FHIR server aligns with several HL7 and IHE integration profiles \cite{iheprofiles}:
+
+\begin{itemize}[leftmargin=2em]
+    \item \textbf{IHE MHD} (Mobile access to Health Documents): The read-only FHIR access pattern with resource-level de-identification aligns with MHD's document sharing model
+    \item \textbf{IHE XDS-I.b} (Cross-Enterprise Document Sharing for Imaging): The DICOM query/retrieve gating pattern maps to XDS-I.b's imaging document source/consumer actors
+    \item \textbf{IHE ATNA} (Audit Trail and Node Authentication): The hash-chained audit ledger extends ATNA's audit logging with tamper-evident chain integrity
+    \item \textbf{HL7 FHIR US Core}: Patient, Condition, Observation, and MedicationAdministration resources follow US Core profiles where applicable
+\end{itemize}
+
+\subsection{Predictable Interfaces with Audit Hooks}
+
+Every MCP tool call produces a predictable response envelope with consistent error codes. The shared error taxonomy (\texttt{servers/common}) ensures that all 5 servers return the same error structure:
+
+\begin{lstlisting}[language=Python,title={\textbf{Standardized Error Response (v0.2.0)}}]
+# Success response
+{"resource": {...}}
+
+# Error response
+{
+    "error": "Invalid resource ID: http://evil.com",
+    "error_code": "VALIDATION_FAILED"
+}
+
+# Authorization error
+{
+    "decision": "deny",
+    "error_code": "AUTHZ_DENIED",
+    "rule_id": "deny-provenance-write",
+    "trace": [{"rule_id": "...", "effect": "deny"}]
+}
+\end{lstlisting}
+
+\subsection{Reduced Integration Complexity at Scale}
+
+The quantitative impact of MCP-based interoperability grows with trial scale:
+
+\begin{table}[H]
+\centering
+\caption{Integration complexity scaling comparison}
+\label{tab:scaling}
+\small
+\begin{tabularx}{\textwidth}{l c c c}
+\toprule
+\textbf{Trial Scale} & \textbf{Point-to-Point} & \textbf{TrialMCP} & \textbf{Reduction} \\
+\midrule
+2 robots, 4 systems & 8 & 6 & 25\% \\
+3 robots, 6 systems & 18 & 9 & 50\% \\
+5 robots, 6 systems & 30 & 11 & 63\% \\
+7 robots, 6 systems & 42 & 13 & 69\% \\
+10 robots, 8 systems & 80 & 18 & 78\% \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Agentic AI Pattern Integration}
+
+TrialMCP's MCP server design is informed by six agentic AI patterns from the federated learning reference architecture \cite{kawchak2026fl}:
+
+\begin{enumerate}[leftmargin=2em]
+    \item \textbf{MCP Oncology Server}: Five core tools pattern implemented across all servers
+    \item \textbf{ReAct Treatment Planner}: Thought-action-observation loops for clinical decisions
+    \item \textbf{Real-Time Adaptive Monitoring}: Streaming data with CTCAE v5.0 grading
+    \item \textbf{Autonomous Simulation Orchestrator}: Multi-framework job coordination
+    \item \textbf{Safety-Constrained Executor}: IEC 80601-2-77 safety gates
+    \item \textbf{Oncology RAG Compliance}: Regulatory document retrieval with citation tracking
+\end{enumerate}
+
+These patterns inform the tool interface design: each MCP tool is a discrete, auditable operation that can be composed into larger agentic workflows while maintaining complete traceability.
+
+% ============================================================================
+% 5. LIMITATIONS AND FUTURE WORK
+% ============================================================================
+\section{Limitations and Future Work}
+
+\subsection{Current Limitations}
+
+\begin{enumerate}[leftmargin=2em]
+    \item \textbf{In-memory data stores}: Production deployment requires HAPI FHIR, Orthanc/dcm4chee, and persistent database backends. The current in-memory stores are suitable for development and testing only.
+
+    \item \textbf{No DICOMweb support}: The DICOM server uses a custom query interface. Production deployments should support both DICOM networking (C-FIND/C-MOVE) and DICOMweb (WADO-RS, QIDO-RS, STOW-RS).
+
+    \item \textbf{Limited FHIR search}: The FHIR search implementation uses simple string matching. Production deployments should support FHIR search parameter syntax including chaining, includes, and modifiers.
+
+    \item \textbf{No FHIR Subscription support}: Real-time event notification (e.g., new adverse event) is not implemented. FHIR R4 Subscription or R5 SubscriptionTopic should be considered.
+
+    \item \textbf{No HL7 v2 support}: Legacy HL7 v2 messaging interfaces (ADT, ORM, ORU) are not supported. Many hospital systems still rely on HL7 v2 for real-time integration.
+
+    \item \textbf{No IHE conformance testing}: The alignment with IHE profiles is architectural; formal IHE Connectathon testing has not been conducted.
+\end{enumerate}
+
+\subsection{Future Interoperability Work}
+
+\begin{itemize}[leftmargin=2em]
+    \item \textbf{DICOMweb proxy}: WADO-RS, QIDO-RS, and STOW-RS support alongside DICOM networking
+    \item \textbf{FHIR Bulk Data}: Support for FHIR Bulk Data Access (SMART Backend Services) for large-scale data export
+    \item \textbf{SMART on FHIR}: OAuth2-based app launch for EHR-integrated agent deployment
+    \item \textbf{HL7 v2 gateway}: ADT/ORM/ORU message translation for legacy system integration
+    \item \textbf{IHE Connectathon}: Formal conformance testing against IHE integration profiles
+    \item \textbf{W3C PROV}: Alignment of the provenance model with W3C PROV-DM for cross-system interoperability
+    \item \textbf{FHIR R5 migration}: Adoption of FHIR R5 features including SubscriptionTopic and improved search
+\end{itemize}
+
+% ============================================================================
+% 6. CONCLUSION
+% ============================================================================
+\section{Conclusion}
+
+TrialMCP positions the Model Context Protocol as the agent-tool interface that cleanly composes with FHIR R4 and DICOM in federated, multi-site oncology trial environments. The five-server architecture with 23 tools provides predictable, typed interfaces with audit hooks at every boundary. By separating the agent protocol layer (MCP) from the clinical data layer (FHIR/DICOM) and the infrastructure layer (HTTP/DICOM networking), TrialMCP enables agents to interact with clinical systems without understanding the underlying healthcare standards.
+
+The architecture reduces integration complexity from $O(N \times M)$ to $O(N + M)$, provides clean boundaries between protocol layers, and supports federated deployment with per-site data sovereignty. Implementation pathways through HAPI FHIR, Orthanc, and dcm4chee provide concrete production deployment options. For health IT architects, interoperability engineers, and standards contributors, TrialMCP v0.2.0 demonstrates that MCP can serve as a principled interoperability layer for Physical AI agents in regulated clinical environments, complementing rather than replacing existing FHIR and DICOM infrastructure.
+
+% ============================================================================
+% REFERENCES
+% ============================================================================
+\bibliographystyle{plain}
+\bibliography{trialmcp_interop}
+
+% ============================================================================
+% ACKNOWLEDGMENTS
+% ============================================================================
+\section*{Acknowledgments}
+
+The author would like to acknowledge Anthropic for providing access to Claude Code Opus 4.6 for repository and paper generations; and OpenAI for providing access to GPT-5.2-Codex for peer-review recommendations, with ChatGPT 5.2 Thinking for project formulation and paper perspectives assistance.
+
+% ============================================================================
+% ETHICAL DISCLOSURES
+% ============================================================================
+\section*{Ethical Disclosures}
+
+The author of the article declares no competing interests.
+
+% ============================================================================
+% RIGHTS AND PERMISSIONS
+% ============================================================================
+\section*{Rights and Permissions}
+
+This article is distributed under the terms of the Creative Commons Attribution 4.0 International License (CC BY 4.0), which permits unrestricted use, distribution, and reproduction in any medium, provided the original author(s) and source are properly credited, a link to the Creative Commons license is provided, and any modifications made are indicated. To view a copy of this license, visit \url{https://creativecommons.org/licenses/by/4.0/}.
+
+% ============================================================================
+% CITE THIS ARTICLE
+% ============================================================================
+\section*{Cite This Article}
+
+Kawchak K. TrialMCP: MCP Servers for Physical AI Oncology Clinical Trial Systems. \textit{Zenodo}. 2026; \href{https://doi.org/10.5281/zenodo.18870961}{10.5281/zenodo.18870961}.
+
+\end{document}

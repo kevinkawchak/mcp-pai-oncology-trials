@@ -1,4 +1,33 @@
 Release title
+v0.3.0 - TrialMCP Research Papers: Clinical Operations, Regulatory, and Interoperability
+
+## Summary
+This release adds three comprehensive 10-page research papers presenting TrialMCP from complementary perspectives: Clinical Operations, Regulatory/Quality/Compliance, and Healthcare Interoperability/Standards. All three papers are published under DOI 10.5281/zenodo.18870961 with full LaTeX source files. The release includes a new `/papers` directory with individual and combined PDFs, LaTeX source archives, and updated repository documentation.
+
+## Features
+- **Paper A -- Clinical Operations**: Addresses trial sponsors, CRO leadership, and site networks with focus on workflow sequences, deployment topology for federated multi-site trials, integration project reduction analysis (69% fewer projects at scale), and three-phase adoption pathway.
+- **Paper B -- Regulatory**: Addresses QA/CSV teams, auditors, and compliance officers with compliance-first architecture mapping to 21 CFR Part 11, ICH-GCP E6(R2), and HIPAA Safe Harbor. Includes complete permission matrix, error taxonomy, and 39-test validation evidence.
+- **Paper C -- Interoperability**: Addresses health IT architects and standards contributors with MCP as agent-tool interface composing with FHIR R4 and DICOM. Covers tool surface area (23 tools, 5 servers), security gate architecture, and production integration pathways (HAPI FHIR, Orthanc, dcm4chee).
+- **Combined PDF**: All three papers merged in order (A, B, C) with original page numbering preserved (1-10, 1-10, 1-10).
+- **LaTeX Source Archives**: Each paper includes a zip file with `.tex`, `.bib`, `.sty`, and `README` files with distinguishable filenames.
+- **Papers README**: Directory-level documentation with paper overview, citation, and structure.
+- **Updated documentation**: prompts.md with v0.3.0 build prompt, changelog.md with v0.3.0 entry, releases.md with v0.3.0 notes.
+
+## Contributors
+@kevinkawchak
+@claude
+@openai
+
+## Notes
+- All three papers share DOI [10.5281/zenodo.18870961](https://doi.org/10.5281/zenodo.18870961) and are licensed under CC BY 4.0.
+- Papers are built from the v0.2.0 codebase (5 MCP servers, 23 tools, 39 tests) with no runtime code changes.
+- Each paper is self-contained with its own abstract, table of contents, introduction, methods, results, discussion, limitations, conclusion, references, acknowledgments, ethical disclosures, rights/permissions, and citation section.
+- LaTeX build requires `texlive-latex-base`, `texlive-latex-extra`, `texlive-fonts-recommended`, and `texlive-science`.
+- Python 3.10+ compatible. No new runtime dependencies.
+
+---
+
+Release title
 v0.2.0 - TrialMCP Pack: Peer-Review Hardening and Publication Readiness
 
 ## Summary

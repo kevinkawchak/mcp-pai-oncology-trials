@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-import json
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from servers.trialmcp_fhir.src.fhir_server import FHIRMCPServer
-from servers.trialmcp_dicom.src.dicom_server import DICOMMCPServer
 from servers.trialmcp_authz.src.authz_server import AuthzMCPServer
+from servers.trialmcp_dicom.src.dicom_server import DICOMMCPServer
+from servers.trialmcp_fhir.src.fhir_server import FHIRMCPServer
 from servers.trialmcp_ledger.src.ledger_server import LedgerMCPServer
 
 
@@ -181,18 +180,14 @@ class TestReplayPrevention:
         token_id = token_result["token_id"]
 
         # Validate before revocation
-        valid_result = server.handle_tool_call(
-            "authz_validate_token", {"token_id": token_id}
-        )
+        valid_result = server.handle_tool_call("authz_validate_token", {"token_id": token_id})
         assert valid_result["valid"] is True
 
         # Revoke
         server.handle_tool_call("authz_revoke_token", {"token_id": token_id})
 
         # Validate after revocation
-        invalid_result = server.handle_tool_call(
-            "authz_validate_token", {"token_id": token_id}
-        )
+        invalid_result = server.handle_tool_call("authz_validate_token", {"token_id": token_id})
         assert invalid_result["valid"] is False
 
     def test_token_expiry_enforcement(self) -> None:
@@ -205,9 +200,7 @@ class TestReplayPrevention:
         token_id = token_result["token_id"]
 
         # Token should already be expired
-        invalid_result = server.handle_tool_call(
-            "authz_validate_token", {"token_id": token_id}
-        )
+        invalid_result = server.handle_tool_call("authz_validate_token", {"token_id": token_id})
         assert invalid_result["valid"] is False
 
 

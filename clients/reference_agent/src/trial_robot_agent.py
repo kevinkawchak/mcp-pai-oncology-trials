@@ -77,9 +77,7 @@ class TrialRobotAgent:
         self._log_action("fetch_task_order", {"study_id": study_id, "result": result})
         return result
 
-    def retrieve_imaging_pointer(
-        self, dicom_server: Any, study_uid: str
-    ) -> dict[str, Any]:
+    def retrieve_imaging_pointer(self, dicom_server: Any, study_uid: str) -> dict[str, Any]:
         """Retrieve a DICOM study pointer for intraoperative guidance."""
         result = dicom_server.handle_tool_call(
             "dicom_retrieve_pointer",

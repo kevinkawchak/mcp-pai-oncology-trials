@@ -18,7 +18,6 @@ Integration points:
 from __future__ import annotations
 
 import hashlib
-import json
 import logging
 import uuid
 from datetime import datetime, timezone
@@ -91,9 +90,7 @@ class DICOMPermissionPolicy:
             },
         }
 
-    def check_permission(
-        self, role: str, query_level: str, modality: str | None = None
-    ) -> bool:
+    def check_permission(self, role: str, query_level: str, modality: str | None = None) -> bool:
         """Check if a role has permission for a given query level and modality."""
         perms = self._role_permissions.get(role)
         if perms is None:
@@ -196,7 +193,9 @@ class DICOMMCPServer:
     SERVER_INFO = {
         "name": "trialmcp-dicom",
         "version": "0.2.0",
-        "description": "DICOM query/retrieve MCP server with strict permissions for oncology trials",
+        "description": (
+            "DICOM query/retrieve MCP server with strict permissions for oncology trials"
+        ),
         "capabilities": {
             "tools": True,
             "resources": True,
@@ -357,7 +356,8 @@ class DICOMMCPServer:
 
         if not self.permissions.can_retrieve(role):
             self._emit_audit("dicom_retrieve_pointer", args, "permission_denied")
-            return error_response(ErrorCode.PERMISSION_DENIED, f"Role '{role}' lacks retrieve permission")
+            msg = f"Role '{role}' lacks retrieve permission"
+            return error_response(ErrorCode.PERMISSION_DENIED, msg)
 
         study = self.index.get_study(study_uid)
         if study is None:

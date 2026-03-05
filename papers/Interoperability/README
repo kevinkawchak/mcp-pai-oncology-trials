@@ -1,0 +1,20 @@
+TrialMCP: MCP Servers for Physical AI Oncology Clinical Trial Systems - Interoperability
+
+LaTeX Source Files
+==================
+- trialmcp_interop.tex   Main LaTeX document
+- trialmcp_interop.bib   BibTeX references
+- trialmcp_interop.sty   Custom style package
+- README                 This file
+
+Build Instructions
+==================
+pdflatex trialmcp_interop.tex
+bibtex trialmcp_interop
+pdflatex trialmcp_interop.tex
+pdflatex trialmcp_interop.tex
+
+Author: Kevin Kawchak, CEO ChemicalQDevice
+ORCID: 0009-0007-5457-8667
+DOI: 10.5281/zenodo.18870961
+Date: March 5, 2026
