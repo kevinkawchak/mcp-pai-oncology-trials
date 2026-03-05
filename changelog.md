@@ -20,6 +20,7 @@
 - Added 3 new professional Mermaid diagrams to README: peer-review development lifecycle, quality assurance cycle, and MCP PAI oncology trial lifecycle.
 - Added contributor icons table in README Team section with @kevinkawchak, @claude, and @codex profile images.
 - Added copy of v0.2.0 build prompt to `prompts.md`.
+- @kevinkawchak fixed truncated v0.1.0 changelog based on v0.1.0 branch 2026-03-05.
 
 ### Changed
 - Updated all server versions from 0.1.0 to 0.2.0.
