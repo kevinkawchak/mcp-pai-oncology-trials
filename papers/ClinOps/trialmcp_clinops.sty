@@ -1,0 +1,72 @@
+% trialmcp_clinops.sty -- Style for TrialMCP Clinical Operations paper
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{trialmcp_clinops}[2026/03/05 TrialMCP Clinical Operations]
+
+\RequirePackage[margin=0.78in,top=0.7in,bottom=0.7in]{geometry}
+\RequirePackage{times}
+\RequirePackage{graphicx}
+\RequirePackage{booktabs}
+\RequirePackage{tabularx}
+\RequirePackage{longtable}
+\RequirePackage{enumitem}
+\RequirePackage{hyperref}
+\RequirePackage{xcolor}
+\RequirePackage{listings}
+\RequirePackage{fancyhdr}
+\RequirePackage{titlesec}
+\RequirePackage{amsmath}
+\RequirePackage{caption}
+\RequirePackage{float}
+\RequirePackage[skip=3pt plus 1pt]{parskip}
+\setlength{\floatsep}{6pt plus 2pt minus 2pt}
+\setlength{\textfloatsep}{8pt plus 2pt minus 4pt}
+\setlength{\intextsep}{6pt plus 2pt minus 2pt}
+\RequirePackage{multicol}
+
+% Colors
+\definecolor{linkblue}{HTML}{2563EB}
+\definecolor{codebg}{HTML}{F8F9FA}
+\definecolor{codeframe}{HTML}{DEE2E6}
+\definecolor{headerblue}{HTML}{1E3A5F}
+
+% Hyperref setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=linkblue,
+    citecolor=linkblue,
+    urlcolor=linkblue,
+    pdftitle={TrialMCP: MCP Servers for Physical AI Oncology Clinical Trial Systems},
+    pdfauthor={Kevin Kawchak},
+}
+
+% Listings setup
+\lstset{
+    basicstyle=\ttfamily\footnotesize,
+    backgroundcolor=\color{codebg},
+    frame=single,
+    rulecolor=\color{codeframe},
+    breaklines=true,
+    breakatwhitespace=true,
+    tabsize=2,
+    showstringspaces=false,
+    numbers=none,
+    xleftmargin=4pt,
+    xrightmargin=4pt,
+    aboveskip=8pt,
+    belowskip=8pt,
+}
+
+% Header/footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textit{TrialMCP: Clinical Operations}}
+\fancyhead[R]{\small\textit{Kawchak, 2026}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Title formatting
+\titleformat{\section}{\large\bfseries\color{headerblue}}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalsize\bfseries\color{headerblue}}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\normalsize\itshape\color{headerblue}}{\thesubsubsection}{1em}{}
+
+\endinput

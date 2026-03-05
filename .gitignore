@@ -12,3 +12,12 @@ build/
 venv/
 *.log
 .env
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.lof
+*.lot
+*.out
+*.toc

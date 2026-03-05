@@ -3,18 +3,17 @@
 from __future__ import annotations
 
 import json
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from servers.trialmcp_fhir.src.fhir_server import FHIRMCPServer
-from servers.trialmcp_dicom.src.dicom_server import DICOMMCPServer
-from servers.trialmcp_ledger.src.ledger_server import LedgerMCPServer
-from servers.trialmcp_authz.src.authz_server import AuthzMCPServer
-from servers.trialmcp_provenance.src.provenance_server import ProvenanceMCPServer
 from clients.reference_agent.src.trial_robot_agent import TrialRobotAgent
-
+from servers.trialmcp_authz.src.authz_server import AuthzMCPServer
+from servers.trialmcp_dicom.src.dicom_server import DICOMMCPServer
+from servers.trialmcp_fhir.src.fhir_server import FHIRMCPServer
+from servers.trialmcp_ledger.src.ledger_server import LedgerMCPServer
+from servers.trialmcp_provenance.src.provenance_server import ProvenanceMCPServer
 
 FHIR_BUNDLE_PATH = os.path.join(
     os.path.dirname(__file__), "..", "..", "datasets", "fhir-bundles", "oncology_trial_bundle.json"
@@ -43,16 +42,26 @@ class TestEndToEndRobotWorkflow:
     def setup_method(self) -> None:
         self.ledger = LedgerMCPServer()
         self.fhir = FHIRMCPServer(
-            audit_callback=lambda r: self.ledger.handle_tool_call("ledger_append", {
-                "server": r["server"], "tool": r["tool"],
-                "caller_id": "system", "result_summary": r["result_summary"],
-            })
+            audit_callback=lambda r: self.ledger.handle_tool_call(
+                "ledger_append",
+                {
+                    "server": r["server"],
+                    "tool": r["tool"],
+                    "caller_id": "system",
+                    "result_summary": r["result_summary"],
+                },
+            )
         )
         self.dicom = DICOMMCPServer(
-            audit_callback=lambda r: self.ledger.handle_tool_call("ledger_append", {
-                "server": r["server"], "tool": r["tool"],
-                "caller_id": "system", "result_summary": r["result_summary"],
-            })
+            audit_callback=lambda r: self.ledger.handle_tool_call(
+                "ledger_append",
+                {
+                    "server": r["server"],
+                    "tool": r["tool"],
+                    "caller_id": "system",
+                    "result_summary": r["result_summary"],
+                },
+            )
         )
         self.authz = AuthzMCPServer()
         self.provenance = ProvenanceMCPServer()
@@ -181,14 +190,10 @@ class TestEndToEndRobotWorkflow:
         )
 
         # Ledger should contain records from fhir and dicom servers
-        fhir_records = self.ledger.handle_tool_call(
-            "ledger_query", {"server": "trialmcp-fhir"}
-        )
+        fhir_records = self.ledger.handle_tool_call("ledger_query", {"server": "trialmcp-fhir"})
         assert fhir_records["count"] > 0
 
-        dicom_records = self.ledger.handle_tool_call(
-            "ledger_query", {"server": "trialmcp-dicom"}
-        )
+        dicom_records = self.ledger.handle_tool_call("ledger_query", {"server": "trialmcp-dicom"})
         assert dicom_records["count"] > 0
 
         # Full chain must be valid

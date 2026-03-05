@@ -1,0 +1,20 @@
+TrialMCP: MCP Servers for Physical AI Oncology Clinical Trial Systems - Regulatory
+
+LaTeX Source Files
+==================
+- trialmcp_regulatory.tex   Main LaTeX document
+- trialmcp_regulatory.bib   BibTeX references
+- trialmcp_regulatory.sty   Custom style package
+- README                    This file
+
+Build Instructions
+==================
+pdflatex trialmcp_regulatory.tex
+bibtex trialmcp_regulatory
+pdflatex trialmcp_regulatory.tex
+pdflatex trialmcp_regulatory.tex
+
+Author: Kevin Kawchak, CEO ChemicalQDevice
+ORCID: 0009-0007-5457-8667
+DOI: 10.5281/zenodo.18870961
+Date: March 5, 2026

@@ -18,7 +18,6 @@ Integration points:
 from __future__ import annotations
 
 import hashlib
-import json
 import logging
 import uuid
 from datetime import datetime, timezone
@@ -259,8 +258,14 @@ class ProvenanceMCPServer:
                         "description": "Output data fingerprint or reference",
                     },
                 },
-                "required": ["source_id", "action", "actor_id", "actor_role", "tool_call",
-                             "input_data"],
+                "required": [
+                    "source_id",
+                    "action",
+                    "actor_id",
+                    "actor_role",
+                    "tool_call",
+                    "input_data",
+                ],
             },
         },
         {
@@ -393,8 +398,9 @@ class ProvenanceMCPServer:
         actual_hash = self.graph.compute_data_fingerprint(args["data"])
         match = actual_hash == args["expected_hash"]
         self._emit_audit(
-            "provenance_verify_integrity", {"expected": args["expected_hash"]},
-            "match" if match else "mismatch"
+            "provenance_verify_integrity",
+            {"expected": args["expected_hash"]},
+            "match" if match else "mismatch",
         )
         return {
             "match": match,

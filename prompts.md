@@ -1,5 +1,92 @@
 # Build Prompts
 
+## Research Papers Prompt (v0.3.0)
+
+Your goal based on kevinkawchak/mcp-pai-oncology-trials is to write 3 10 page total papers from three different paper perspectives below (A) - C)). Each paper should be unique, based on the repository, and have a title that begins with "TrialMCP: MCP Servers for Physical AI Oncology Clinical Trial Systems - " and appends either A) "Clinical Operations" B) "Regulatory" or C) "Interoperability". All 3 papers will be under DOI 10.5281/zenodo.18870961 (https://doi.org/10.5281/zenodo.18870961) Include author Kevin Kawchak, CEO ChemicalQDevice, https://orcid.org/0009-0007-5457-8667, kevink@chemicalqdevice.com, today's date, and appropriate keywords. Don't use images in any of the papers; instead adapt new flowcharts, processes, structures, etc. from text and mermaid diagrams from the repository. Use the maximum 1M context length for processing; do not abbreviate inference time or inference-time compute.
+
+Don't use the term "TrialMCP Pack" throughout each paper. Do not include "a pre-print" in the papers. Each of the papers must be comprehensive, and use information from the repository based on their respective perspectives that will yield new, state-of-the-art, and applicable MCP physical AI oncology trial papers.
+
+Each perspective must have the following Paper Sections:
+- Abstract
+- Table of Contents
+- Introduction
+- Methods
+- Results
+- Discussion
+- Limitations and Future Work
+- Conclusion
+- References
+- Acknowledgments (see below)
+- Ethical disclosures (see below)
+- Rights and permissions (see below)
+- Cite this article (see below)
+
+"PAPER PERSPECTIVES"
+A) Clinical Operations & Trial Sponsors Perspective
+Audience: sponsors, CRO leadership, trial ops directors, site networks
+Core story: "Make multi-site trial operations robot/agent-ready without brittle point-to-point integrations."
+Emphasize: workflow sequence (token -> study status -> imaging pointer -> evidence logging -> provenance), scheduling/eConsent/EDC adjacency, adoption pathway/milestones, operational scalability.
+De-emphasize: protocol internals and deep crypto details.
+Re-order content: start with "why point-to-point doesn't scale" -> end-to-end workflow -> deployment topology -> roadmap.
+Success criteria language: cycle time reduction, audit readiness, fewer integration projects, faster site onboarding.
+
+B) Regulatory, Quality, and Compliance Perspective
+Audience: QA/CSV teams, auditors, compliance officers, regulated engineering orgs
+Core story: "A compliance-first interoperability layer: deny-by-default access, de-ID, tamper-evident audit, replayable traces."
+Emphasize: 21 CFR Part 11 audit chain, ICH-GCP traceability, HIPAA Safe Harbor de-identification, permission matrix by role, replay and verification, error taxonomy, test evidence (security/audit/integration tests).
+De-emphasize: robotics platform comparisons unless directly tied to validation scope.
+Re-order content: compliance claims -> controls mapping -> verification approach/tests -> operational procedures -> limitations/assumptions.
+Success criteria language: inspection readiness, trace completeness, least privilege, tamper evidence, defensible validation package.
+
+C) Healthcare Interoperability & Standards Perspective (FHIR/DICOM/MCP)
+Audience: health IT architects, interoperability engineers, standards contributors (HL7/IHE/DICOM), EHR/PACS teams
+Core story: "MCP as the agent-tool interface that cleanly composes with FHIR + DICOM in federated, multi-site clinical environments."
+Emphasize: tool surface area per server, read-only FHIR pattern + de-ID, DICOM query/retrieve gating, provenance gateway concept, role-scoped capabilities, integration patterns with HAPI/Orthanc/dcm4chee (as implementation pathways).
+De-emphasize: robot brand names; focus on actors/transactions.
+Re-order content: capability model -> server/tool definitions -> security gates -> deployment topology -> conformance considerations.
+Success criteria language: reduced integration complexity, clean boundaries, predictable interfaces, audit hooks everywhere.
+
+You are responsible for the full codebase and set of releases, changelog.md, prompts.md, readmes, documentation, etc. Incorporate release IDs (v0.0.0 format) where appropriate in text, tables, text diagrams, etc. Be sure to implement quantitative data and code snippets where appropriate. It is imperative that all types of information utilized from across the repository be accurate and appropriate to each section of the paper.
+
+Make sure every section is properly formatted and seems attractive to read (bullet points and numbered lists where appropriate and other types of formatting to avoid many long paragraphs). For references: use the three references at the bottom of the main kevinkawchak/mcp-pai-oncology-trials Readme; and exact working URLs where necessary from kevinkawchak/physical-ai-oncology-trials. After finishing each of the papers, make sure end-to-end that all aesthetics regarding the title, white spacing, text diagrams, tables, etc. are appropriate.
+
+In a new /papers directory on main, create a new readme and three subdirectories "ClinOps", "Regulatory", and "Interoperability" based on their respective perspectives. Each subdirectory should contain their respective 10 page pdf and a "LaTeX Source Files" zip file containing distinguishable file names based on their perspectives for (.tex, .bib, .sty, and README). Also provide a pdf in /papers that combines all three papers into one pdf in the order A), B), C) with no changes to any of the papers and no blank pages between them (do not re-number any of the pages): new pdf page format should be 1-10, 1-10, 1-10 .
+
+Provide a copy of this prompt under the related prompts.md. Be sure to fix and address errors that would cause failed checks for the single pull request (such as Python environment issues to avoid the following error during final checks): "3 failing checks
+x Cl / lint-and-format (3.10) (pull...
+x Cl / lint-and-format (3.11) (pull...
+x Cl / lint-and-format (3.12) (pull... " Place the new release notes in releases.md under main using the format below. Update changelog using v0.3.0. When you are finished, auto-push the update to GitHub on your own for my review. The user will then review your updates in GitHub prior to finalization.
+
+"FORMAT"
+Release title
+v0.3.0 -
+
+## Summary
+
+## Features
+
+## Contributors
+@kevinkawchak
+@claude
+@openai
+
+## Notes
+
+(Below: Not part of release notes)
+Acknowledgments
+The author would like to acknowledge Anthropic for providing access to Claude Code Opus 4.6 for repository and paper generations; and OpenAI for providing access to GPT-5.2-Codex for peer-review recommendations, with ChatGPT 5.2 Thinking for project formulation and paper perspectives assistance.
+
+Ethical disclosures
+The author of the article declares no competing interests.
+
+Rights and permissions
+This article is distributed under the terms of the Creative Commons Attribution 4.0 International License (CC BY 4.0), which permits unrestricted use, distribution, and reproduction in any medium, provided the original author(s) and source are properly credited, a link to the Creative Commons license is provided, and any modifications made are indicated. To view a copy of this license, visit https://creativecommons.org/licenses/by/4.0/.
+
+Cite this article
+Kawchak K. TrialMCP: MCP Servers for Physical AI Oncology Clinical Trial Systems. Zenodo. 2026; 10.5281/zenodo.18870961.
+
+---
+
 ## Publication Readiness Prompt (v0.2.0)
 
 Based on addressing these @codex peer-review recommendations and performing additional checks and tests by yourself: prepare the repository for a future full-length paper publication: kevinkawchak/mcp-pai-oncology-trials/blob/main/peer-review/trialmcp_pack_v0.1.1_peer_review.md

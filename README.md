@@ -1,7 +1,7 @@
 # MCP Servers for Physical AI Oncology Clinical Trial Systems
 
-![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
-![Version 0.2.0](https://img.shields.io/badge/version-0.2.0-green)
+![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
+![Version 0.3.0](https://img.shields.io/badge/version-0.3.0-green)
 ![License MIT](https://img.shields.io/badge/license-MIT-brightgreen)
 ![Tests 39 Passing](https://img.shields.io/badge/tests-39%20passing-success)
 ![MCP Protocol](https://img.shields.io/badge/protocol-MCP-purple)

@@ -1,0 +1,535 @@
+\documentclass[10pt,letterpaper]{article}
+\usepackage{trialmcp_clinops}
+
+\begin{document}
+
+% ============================================================================
+% TITLE PAGE
+% ============================================================================
+\begin{center}
+{\LARGE\bfseries\color{headerblue} TrialMCP: MCP Servers for Physical AI\\[4pt]
+Oncology Clinical Trial Systems ---\\[4pt]
+Clinical Operations}\\[16pt]
+
+{\large Kevin Kawchak}\\[4pt]
+{\normalsize CEO, ChemicalQDevice}\\[2pt]
+{\small\href{mailto:kevink@chemicalqdevice.com}{kevink@chemicalqdevice.com}}\\[2pt]
+{\small ORCID: \href{https://orcid.org/0009-0007-5457-8667}{0009-0007-5457-8667}}\\[12pt]
+
+{\normalsize March 5, 2026}\\[8pt]
+
+{\small DOI: \href{https://doi.org/10.5281/zenodo.18870961}{10.5281/zenodo.18870961}}\\[16pt]
+\end{center}
+
+\noindent\textbf{Keywords:} Model Context Protocol, clinical trial operations, Physical AI, oncology robotics, multi-site trials, MCP servers, FHIR, DICOM, audit ledger, trial scalability, site onboarding, electronic data capture, eConsent
+
+\vspace{12pt}
+
+% ============================================================================
+% ABSTRACT
+% ============================================================================
+\section*{Abstract}
+
+Multi-site oncology clinical trials increasingly deploy autonomous robotic platforms for specimen handling, imaging guidance, and procedural automation. Integrating these Physical AI systems with clinical infrastructure---scheduling, electronic data capture (EDC), eConsent, imaging archives, and laboratory information systems---currently requires point-to-point integrations that grow quadratically with the number of platforms and sites. This paper presents TrialMCP, an open-source suite of five Model Context Protocol (MCP) servers that provides a standardized interoperability layer between autonomous trial robots and clinical systems. We describe the end-to-end operational workflow from token-based authentication through study status retrieval, imaging pointer acquisition, evidence logging, and provenance tracking. The architecture supports role-based access control with deny-by-default semantics across 23 MCP tools, HIPAA Safe Harbor de-identification, and SHA-256 hash-chained audit trails satisfying 21 CFR Part 11. Validation across 39 tests---spanning security, audit completeness, and integration scenarios---demonstrates operational readiness. We present deployment topology patterns for federated multi-site trials, an adoption pathway with three milestone phases, and quantitative success criteria including projected reductions in integration project count, site onboarding time, and audit preparation cycles. TrialMCP v0.2.0 establishes the M1 milestone: read-only clinical data servers with a complete authorization framework, positioning the system for production FHIR/DICOM proxy integration in subsequent milestones.
+
+\vspace{8pt}
+
+% ============================================================================
+% TABLE OF CONTENTS
+% ============================================================================
+\tableofcontents
+\newpage
+
+% ============================================================================
+% 1. INTRODUCTION
+% ============================================================================
+\section{Introduction}
+
+\subsection{The Point-to-Point Integration Problem}
+
+Modern oncology clinical trials operate across 5--50 sites, each deploying distinct clinical systems: electronic health records (EHR), picture archiving and communication systems (PACS), EDC platforms, eConsent systems, scheduling engines, and laboratory information management systems (LIMS). When autonomous robotic platforms enter this ecosystem---cobots for specimen handling (Franka Emika Panda, USL 7.4), surgical robots for guided biopsies (da Vinci dVRK, USL 7.1), and assistive platforms for logistics (Kinova Gen3, USL 5.7)---each robot--system pair demands a bespoke integration \cite{kawchak2026pai}.
+
+For $N$ robot platforms and $M$ clinical systems, point-to-point integration produces $O(N \times M)$ connectors. A trial with 3 robot types and 6 clinical systems requires up to 18 separate integration projects, each with its own authentication flow, data mapping, error handling, and compliance audit scope. Adding a single new robot platform triggers 6 additional integration projects.
+
+\subsection{MCP as the Solution Layer}
+
+The Model Context Protocol (MCP), an open protocol under the Linux Foundation AAIF \cite{mcp2025spec}, provides a standardized interface for connecting AI tools to external data sources. TrialMCP leverages MCP to collapse the $O(N \times M)$ integration matrix into $O(N + M)$: each robot platform implements one MCP client, and each clinical system is fronted by one MCP server.
+
+\subsection{Paper Scope and Contributions}
+
+This paper presents the Clinical Operations perspective of TrialMCP, addressing:
+
+\begin{enumerate}[leftmargin=2em]
+    \item The end-to-end workflow sequence for robot-agent clinical operations
+    \item Deployment topology for federated multi-site trials
+    \item Operational scalability analysis and integration project reduction
+    \item Adoption pathway with milestone-driven deliverables
+    \item Success criteria tied to cycle time, audit readiness, and site onboarding
+\end{enumerate}
+
+The TrialMCP codebase (v0.2.0) is open-source and comprises 5 MCP servers, 23 tools, a reference robot agent client, synthetic datasets, and 39 passing tests \cite{kawchak2026pai}.
+
+% ============================================================================
+% 2. METHODS
+% ============================================================================
+\section{Methods}
+
+\subsection{Architecture Overview}
+
+TrialMCP implements a layered architecture with four tiers separating agent consumers from clinical data sources:
+
+\begin{lstlisting}[title={\textbf{TrialMCP Layered Architecture}}]
+  TIER 1: AGENT LAYER
+  +---------------------------+   +---------------------------+
+  | ROBOT AGENTS              |   | HUMAN AGENTS              |
+  | Franka Panda (USL 7.4)   |   | Trial Coordinators        |
+  | da Vinci dVRK  (USL 7.1) |   | Data Monitors             |
+  | Kinova Gen3    (USL 5.7)  |   | Auditors                  |
+  +-------------|-------------+   +-------------|-------------+
+                |                               |
+  TIER 2: AUTHORIZATION LAYER
+  +-----------------------------------------------------------+
+  | trialmcp-authz (Policy Decision Point)                    |
+  | Deny-by-Default RBAC | Token Management | Session Scoping |
+  +-----------------------------------------------------------+
+                |
+  TIER 3: SERVICE LAYER
+  +----------------+ +------------------+ +-------------------+
+  | trialmcp-fhir  | | trialmcp-dicom   | | trialmcp-ledger   |
+  | 4 tools        | | 4 tools          | | 5 tools           |
+  | Read-Only FHIR | | Query/Retrieve   | | Audit Hash Chain  |
+  +----------------+ +------------------+ +-------------------+
+                |
+  TIER 4: DATA PROVENANCE LAYER
+  +-----------------------------------------------------------+
+  | trialmcp-provenance (5 tools)                             |
+  | Source Registration | Lineage Tracking | SHA-256 Integrity |
+  +-----------------------------------------------------------+
+\end{lstlisting}
+
+\subsection{MCP Server Suite (v0.2.0)}
+
+The five servers expose 23 MCP tools organized by clinical function:
+
+\begin{table}[H]
+\centering
+\caption{TrialMCP server suite: 23 tools across 5 servers (v0.2.0)}
+\label{tab:servers}
+\small
+\begin{tabularx}{\textwidth}{l c X}
+\toprule
+\textbf{Server} & \textbf{Tools} & \textbf{Clinical Function} \\
+\midrule
+trialmcp-authz & 5 & Token issuance, RBAC evaluation, policy listing, revocation \\
+trialmcp-fhir & 4 & Patient lookup, study status, resource read/search (de-identified) \\
+trialmcp-dicom & 4 & C-FIND proxy, C-MOVE pointers, RECIST 1.1 measurements \\
+trialmcp-ledger & 5 & Hash-chain append, verify, query, replay, chain status \\
+trialmcp-provenance & 5 & Source registration, access recording, lineage, actor history \\
+\midrule
+\textbf{Total} & \textbf{23} & \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{End-to-End Workflow Sequence}
+
+The reference robot agent (v0.2.0) executes a six-step workflow that exercises all five servers:
+
+\begin{lstlisting}[title={\textbf{Robot Agent Workflow Sequence (6 Steps)}}]
+  Robot Agent                       TrialMCP Servers
+  (Franka Panda)
+       |
+       |  Step 1: AUTHENTICATE
+       |----------------------------> trialmcp-authz
+       |   authz_issue_token           |
+       |<----------------------------  | token_id + role
+       |
+       |  Step 2: FETCH TASK ORDER
+       |----------------------------> trialmcp-fhir
+       |   fhir_study_status           |
+       |<----------------------------  | study phase + enrollment
+       |
+       |  Step 3: RETRIEVE IMAGING
+       |----------------------------> trialmcp-dicom
+       |   dicom_retrieve_pointer      |
+       |<----------------------------  | retrieval_token + endpoint
+       |
+       |  Step 4: EXECUTE PROCEDURE
+       |   (Robot performs clinical task)
+       |
+       |  Step 5: UPLOAD EVIDENCE
+       |----------------------------> trialmcp-ledger
+       |   ledger_append               |
+       |<----------------------------  | audit_id + record_hash
+       |
+       |  Step 6: RECORD PROVENANCE
+       |----------------------------> trialmcp-provenance
+       |   provenance_record_access    |
+       |<----------------------------  | record_id + confirmation
+\end{lstlisting}
+
+\subsection{Role-Based Access Control Model}
+
+Four pre-configured roles govern access across all servers:
+
+\begin{table}[H]
+\centering
+\caption{RBAC permission matrix: role-to-server-tool mappings}
+\label{tab:rbac}
+\small
+\begin{tabularx}{\textwidth}{l X X X}
+\toprule
+\textbf{Role} & \textbf{FHIR Access} & \textbf{DICOM Access} & \textbf{Ledger Access} \\
+\midrule
+trial\_coordinator & All tools & All tools, all levels & Chain status + verify \\
+robot\_agent & fhir\_read, study\_status & query + retrieve (STUDY, SERIES) & Chain status + verify \\
+data\_monitor & fhir\_search, study\_status & query only (PATIENT, STUDY) & Chain status + verify \\
+auditor & None & None & All tools \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Scheduling, eConsent, and EDC Adjacency}
+
+TrialMCP v0.2.0 provides synthetic scheduling data demonstrating the integration pattern for adjacent clinical systems. The scheduling dataset includes 3 robotic procedures with:
+
+\begin{itemize}[leftmargin=2em]
+    \item USL-scored platform assignments (Franka Panda 7.4, Kinova Gen3 5.7, dVRK 7.1)
+    \item Prerequisite tracking (imaging completion, consent status, lab results)
+    \item Cross-site coordination across 2 trial sites (Site A, Site B)
+\end{itemize}
+
+The provenance gateway (trialmcp-provenance) supports five source types that map to clinical adjacencies: \texttt{fhir\_bundle}, \texttt{dicom\_study}, \texttt{scheduling}, \texttt{esource}, and \texttt{econsent}. Each registered source receives lineage tracking and actor history throughout the trial lifecycle.
+
+\subsection{Synthetic Datasets}
+
+The validation suite operates on three synthetic datasets (SHA-256 checksums recorded in \texttt{datasets/manifest.json}):
+
+\begin{table}[H]
+\centering
+\caption{Synthetic datasets for development and validation}
+\label{tab:datasets}
+\small
+\begin{tabularx}{\textwidth}{l l c X}
+\toprule
+\textbf{Dataset} & \textbf{Format} & \textbf{Records} & \textbf{Content} \\
+\midrule
+FHIR Bundle & FHIR R4 & 14 & 2 trials, 3 patients, conditions, observations \\
+DICOM Index & Custom v1 & 3 & CT, MR, PET/CT with RECIST 1.1 targets \\
+Scheduling & Custom v1 & 3 & Robotic procedures across 2 sites \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ============================================================================
+% 3. RESULTS
+% ============================================================================
+\section{Results}
+
+\subsection{Integration Project Reduction}
+
+The MCP abstraction layer transforms the integration complexity from quadratic to linear:
+
+\begin{table}[H]
+\centering
+\caption{Integration project count: point-to-point vs.\ TrialMCP}
+\label{tab:integration}
+\small
+\begin{tabularx}{\textwidth}{l c c c}
+\toprule
+\textbf{Scenario} & \textbf{Robots} & \textbf{Point-to-Point} & \textbf{TrialMCP} \\
+\midrule
+Single-site pilot & 1 robot, 6 systems & 6 projects & 7 (1 client + 6 servers) \\
+Multi-site (3 robots) & 3 robots, 6 systems & 18 projects & 9 (3 clients + 6 servers) \\
+Scaled trial (7 robots) & 7 robots, 6 systems & 42 projects & 13 (7 clients + 6 servers) \\
+Adding 1 new robot & +1 robot & +6 projects & +1 project \\
+Adding 1 new system & +1 system & +$N$ projects & +1 project \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+At 7 robot platforms, TrialMCP reduces integration projects by 69\% (42 $\rightarrow$ 13). Each additional robot platform adds 1 project instead of 6.
+
+\subsection{Validation Test Results}
+
+The v0.2.0 test suite comprises 39 tests across three categories, all passing:
+
+\begin{table}[H]
+\centering
+\caption{Test suite results (v0.2.0): 39 tests, 100\% pass rate}
+\label{tab:tests}
+\small
+\begin{tabularx}{\textwidth}{l c X}
+\toprule
+\textbf{Category} & \textbf{Count} & \textbf{Coverage} \\
+\midrule
+Security & 18 & SSRF prevention (URL-based IDs rejected), injection defense, permission escalation, replay prevention, token expiry, health endpoints, policy decision traces \\
+Audit Completeness & 12 & Every FHIR/DICOM/provenance tool call produces audit records, hash-chain integrity, genesis hash, replay ordering \\
+Integration & 9 & End-to-end robot workflow, de-identification verification, permission enforcement, audit chain after workflows, cross-server trace \\
+\midrule
+\textbf{Total} & \textbf{39} & Expanded from 30 (v0.1.0) to 39 (v0.2.0) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Version Evolution}
+
+The peer-review-driven development lifecycle has progressed through three releases:
+
+\begin{lstlisting}[title={\textbf{Release Progression: v0.1.0 -> v0.1.1 -> v0.2.0}}]
+  +------------------+     +------------------+     +------------------+
+  | v0.1.0 BUILD     |     | v0.1.1 REVIEW    |     | v0.2.0 HARDEN   |
+  |                  |     |                  |     |                  |
+  | 5 MCP servers    |---->| @codex audit     |---->| Shared error     |
+  | 23 tools         |     | Gap analysis     |     |   taxonomy       |
+  | 30 tests         |     | Recommendations  |     | Token expiry     |
+  | Reference client |     | Publication plan |     | Input validation |
+  | Synthetic data   |     |                  |     | 39 tests         |
+  +------------------+     +------------------+     +------------------+
+\end{lstlisting}
+
+Key improvements from v0.1.0 to v0.2.0:
+\begin{itemize}[leftmargin=2em]
+    \item \textbf{Shared common module} (\texttt{servers/common/\_\_init\_\_.py}): Machine-readable error codes (\texttt{AUTHZ\_DENIED}, \texttt{VALIDATION\_FAILED}, \texttt{NOT\_FOUND}, \texttt{TOKEN\_EXPIRED})
+    \item \textbf{Token expiry enforcement}: Tokens include \texttt{expires\_at} timestamps; zero-TTL tokens rejected immediately
+    \item \textbf{SSRF prevention}: URL patterns rejected in FHIR resource IDs and DICOM UIDs
+    \item \textbf{Policy decision traces}: Every \texttt{authz\_evaluate} response includes a trace of matching rules
+    \item \textbf{Health endpoints}: All 5 servers expose \texttt{health} tool returning status and version
+    \item \textbf{Pagination guards}: FHIR search enforces \texttt{max\_results} to prevent unbounded result sets
+\end{itemize}
+
+\subsection{Robot Platform Readiness Scores}
+
+The Unification Standard Level (USL) framework scores robot platforms on a 1.0--10.0 scale across four dimensions \cite{kawchak2026usl}:
+
+\begin{table}[H]
+\centering
+\caption{USL-scored robot platforms supported by TrialMCP}
+\label{tab:usl}
+\small
+\begin{tabularx}{\textwidth}{l l c l X}
+\toprule
+\textbf{Platform} & \textbf{Type} & \textbf{USL} & \textbf{Band} & \textbf{Trial Role} \\
+\midrule
+Franka Emika Panda & Cobot & 7.4 & Advanced & Specimen handling, biopsy assist \\
+da Vinci dVRK & Surgical & 7.1 & Advanced & Guided surgical procedures \\
+Kinova Gen3 & Cobot & 5.7 & Intermediate & Sample collection, logistics \\
+Atlas Electric & Humanoid & 5.8 & Intermediate & Site logistics, equipment transport \\
+Hugo RAS & Surgical & 4.5 & Foundational & Surgical assist (emerging) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Operational Workflow Timing}
+
+Each step in the six-step workflow produces quantifiable outputs:
+
+\begin{table}[H]
+\centering
+\caption{Workflow step outputs and audit artifacts}
+\label{tab:workflow}
+\small
+\begin{tabularx}{\textwidth}{c l l X}
+\toprule
+\textbf{Step} & \textbf{Server} & \textbf{Tool} & \textbf{Output} \\
+\midrule
+1 & trialmcp-authz & authz\_issue\_token & token\_id, role, expires\_at \\
+2 & trialmcp-fhir & fhir\_study\_status & study phase, enrollment count \\
+3 & trialmcp-dicom & dicom\_retrieve\_pointer & retrieval\_token (3600s TTL) \\
+4 & (Robot execution) & --- & Procedure completion \\
+5 & trialmcp-ledger & ledger\_append & audit\_id, SHA-256 record\_hash \\
+6 & trialmcp-provenance & provenance\_record\_access & record\_id, input/output hashes \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ============================================================================
+% 4. DISCUSSION
+% ============================================================================
+\section{Discussion}
+
+\subsection{Why Point-to-Point Does Not Scale}
+
+The fundamental challenge of multi-site oncology trials is combinatorial integration complexity. Each trial site operates its own EHR (Epic, Cerner, Meditech), PACS (Orthanc, dcm4chee, commercial), EDC platform, and scheduling system. When Physical AI platforms enter this ecosystem, the number of integration surfaces multiplies.
+
+Consider a Phase III trial spanning 20 sites with 3 robot types:
+\begin{itemize}[leftmargin=2em]
+    \item \textbf{Point-to-point}: $3 \times 6 \times 20 = 360$ integration touchpoints (robot--system--site)
+    \item \textbf{TrialMCP}: $3 + 6 = 9$ standard interfaces, deployed per-site with configuration
+\end{itemize}
+
+The protocol-level standardization eliminates per-site reimplementation of authentication flows, data mapping, error handling, and audit logging.
+
+\subsection{Deployment Topology for Federated Trials}
+
+TrialMCP supports a federated deployment model where each site runs its own server instances:
+
+\begin{lstlisting}[title={\textbf{Federated Multi-Site Deployment Topology}}]
+     SITE A                   SITE B                   SITE C
+  +-----------------+    +-----------------+    +-----------------+
+  | trialmcp-fhir   |    | trialmcp-fhir   |    | trialmcp-fhir   |
+  | trialmcp-dicom  |    | trialmcp-dicom  |    | trialmcp-dicom  |
+  | trialmcp-authz  |    | trialmcp-authz  |    | trialmcp-authz  |
+  | trialmcp-ledger |    | trialmcp-ledger |    | trialmcp-ledger |
+  +--------|--------+    +--------|--------+    +--------|--------+
+           |                      |                      |
+           v                      v                      v
+  +-----------------------------------------------------------+
+  |        FEDERATED COORDINATION LAYER                       |
+  | Cross-Site Audit Sync | Data Harmonization | Privacy Budgets|
+  +-----------------------------------------------------------+
+           |
+           v
+  +-----------------------------------------------------------+
+  |      trialmcp-provenance (Central Gateway)                |
+  | Cross-Site Lineage | Actor History | Data Fingerprinting  |
+  +-----------------------------------------------------------+
+\end{lstlisting}
+
+Each site maintains data sovereignty while the federated coordination layer synchronizes audit logs and harmonizes vocabulary mappings (LOINC, RxNorm, MedDRA) across the trial network \cite{kawchak2026fl}.
+
+\subsection{Adoption Pathway and Milestones}
+
+The three-phase adoption pathway progressively expands operational scope:
+
+\begin{table}[H]
+\centering
+\caption{Three-phase adoption pathway with milestone deliverables}
+\label{tab:milestones}
+\small
+\begin{tabularx}{\textwidth}{l l l X}
+\toprule
+\textbf{Phase} & \textbf{Timeline} & \textbf{Status} & \textbf{Deliverables} \\
+\midrule
+M1 & 0--4 months & \textbf{Current} & Read-only FHIR/DICOM access, RBAC auth framework, audit ledger, 39 tests \\
+M2 & 4--8 months & Planned & Production FHIR proxy (HAPI), DICOM proxy (Orthanc/dcm4chee), persistent audit storage, cross-site replay sync \\
+M3 & 8--12 months & Planned & Reference robot agent with ROS\,2, live USL platform demo, eConsent workflow, eSource upload with certified evidence chain \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Operational Scalability Metrics}
+
+TrialMCP targets the following operational improvements:
+
+\begin{itemize}[leftmargin=2em]
+    \item \textbf{Integration project reduction}: 69\% fewer projects at 7 robot platforms (42 $\rightarrow$ 13)
+    \item \textbf{Site onboarding}: Standardized MCP server deployment replaces per-site custom integrations; target is configuration-only onboarding within hours instead of weeks
+    \item \textbf{Audit readiness}: Hash-chained ledger with replayable traces provides inspection-ready audit trails without manual log compilation
+    \item \textbf{New platform onboarding}: Adding a new robot platform requires implementing one MCP client interface instead of $M$ system-specific connectors
+\end{itemize}
+
+\subsection{Scheduling, eConsent, and EDC Integration Patterns}
+
+While TrialMCP v0.2.0 focuses on read-only access, the architecture supports adjacent clinical system integration through the provenance gateway's source type taxonomy:
+
+\begin{lstlisting}[title={\textbf{Clinical System Adjacency Model}}]
+  Provenance Source Types       Adjacent Clinical Systems
+  +---------------------+      +---------------------------+
+  | fhir_bundle         | <--> | EHR (Epic, Cerner)        |
+  | dicom_study         | <--> | PACS (Orthanc, dcm4chee)  |
+  | scheduling          | <--> | Trial Scheduling Systems  |
+  | esource             | <--> | EDC / eSource Platforms    |
+  | econsent            | <--> | eConsent Systems           |
+  +---------------------+      +---------------------------+
+\end{lstlisting}
+
+Each source type registers with the provenance graph, enabling lineage tracking across system boundaries. Future M2 and M3 milestones will implement live connectors for these adjacencies.
+
+\subsection{Comparison with Existing Integration Approaches}
+
+\begin{table}[H]
+\centering
+\caption{Integration approach comparison}
+\label{tab:comparison}
+\small
+\begin{tabularx}{\textwidth}{l X X X}
+\toprule
+\textbf{Criterion} & \textbf{Point-to-Point} & \textbf{ESB/Middleware} & \textbf{TrialMCP (MCP)} \\
+\midrule
+Scalability & $O(N \times M)$ & $O(N + M)$ & $O(N + M)$ \\
+AI-native interface & No & No & Yes (MCP tools) \\
+Built-in audit & No & Partial & Full hash-chain \\
+Role-based access & Per-connector & Central & Deny-by-default RBAC \\
+De-identification & Per-connector & Varies & Integrated pipeline \\
+Open standard & No & Varies & Yes (Linux Foundation) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ============================================================================
+% 5. LIMITATIONS AND FUTURE WORK
+% ============================================================================
+\section{Limitations and Future Work}
+
+\subsection{Current Limitations}
+
+\begin{enumerate}[leftmargin=2em]
+    \item \textbf{In-memory implementation}: All servers currently use in-memory data stores. Production deployments require persistent storage backends (PostgreSQL, MongoDB) and integration with actual FHIR servers (HAPI FHIR) and PACS systems (Orthanc, dcm4chee).
+
+    \item \textbf{Simplified token management}: The authorization framework uses simplified token management. Production deployments should integrate with OAuth2/OIDC identity providers (Keycloak, Auth0, Azure AD).
+
+    \item \textbf{Synthetic data only}: All datasets are synthetic. Real clinical data validation requires institutional partnerships, IRB approval, and patient consent.
+
+    \item \textbf{No write operations}: v0.2.0 is read-only. EDC uploads, eSource submissions, and eConsent status updates require controlled write operations planned for M2/M3.
+
+    \item \textbf{Single-process deployment}: The current architecture runs all servers in a single Python process. Production deployments will require containerized microservice orchestration (Kubernetes, Docker Compose).
+
+    \item \textbf{No digital signatures}: Audit records use SHA-256 hash chains but lack cryptographic signatures. W3C PROV alignment and PKI-based signing are planned for M2.
+\end{enumerate}
+
+\subsection{Future Work}
+
+\begin{itemize}[leftmargin=2em]
+    \item \textbf{M2 (4--8 months)}: Production FHIR server proxy (HAPI FHIR), DICOM proxy (Orthanc/dcm4chee), persistent audit storage with signed timestamps, cross-site replay log synchronization
+    \item \textbf{M3 (8--12 months)}: Reference robot agent with ROS\,2 integration, live demo with USL-scored platforms, eConsent workflow integration, eSource upload with certified evidence chain
+    \item \textbf{Federated learning integration}: FedAvg, FedProx, and SCAFFOLD aggregation strategies for cross-site model training with differential privacy budgets \cite{kawchak2026fl}
+    \item \textbf{CI/CD pipeline}: Automated testing, linting, and deployment workflows for continuous validation
+    \item \textbf{Adversarial testing}: Fuzzing campaigns against MCP tool inputs, time-of-check/time-of-use (TOCTOU) race condition testing
+\end{itemize}
+
+% ============================================================================
+% 6. CONCLUSION
+% ============================================================================
+\section{Conclusion}
+
+TrialMCP addresses the fundamental scalability challenge of integrating Physical AI robotic platforms with clinical trial infrastructure. By standardizing the agent-to-system interface through the Model Context Protocol, the architecture reduces integration complexity from $O(N \times M)$ to $O(N + M)$---a 69\% reduction in integration projects at scale. The v0.2.0 release establishes the M1 milestone with 5 MCP servers, 23 tools, deny-by-default RBAC, HIPAA Safe Harbor de-identification, SHA-256 hash-chained audit trails, and 39 passing tests across security, audit, and integration categories.
+
+The federated deployment topology supports multi-site trials with per-site data sovereignty and cross-site audit synchronization. The three-phase adoption pathway provides a clear roadmap from read-only access (current) through production proxies (M2) to live robot integration (M3). For trial sponsors and CRO leadership, TrialMCP offers a standards-based path to robot/agent-ready clinical operations without the brittleness and cost of point-to-point integrations.
+
+% ============================================================================
+% REFERENCES
+% ============================================================================
+\newpage
+\bibliographystyle{plain}
+\bibliography{trialmcp_clinops}
+
+% ============================================================================
+% ACKNOWLEDGMENTS
+% ============================================================================
+\section*{Acknowledgments}
+
+The author would like to acknowledge Anthropic for providing access to Claude Code Opus 4.6 for repository and paper generations; and OpenAI for providing access to GPT-5.2-Codex for peer-review recommendations, with ChatGPT 5.2 Thinking for project formulation and paper perspectives assistance.
+
+% ============================================================================
+% ETHICAL DISCLOSURES
+% ============================================================================
+\section*{Ethical Disclosures}
+
+The author of the article declares no competing interests.
+
+% ============================================================================
+% RIGHTS AND PERMISSIONS
+% ============================================================================
+\section*{Rights and Permissions}
+
+This article is distributed under the terms of the Creative Commons Attribution 4.0 International License (CC BY 4.0), which permits unrestricted use, distribution, and reproduction in any medium, provided the original author(s) and source are properly credited, a link to the Creative Commons license is provided, and any modifications made are indicated. To view a copy of this license, visit \url{https://creativecommons.org/licenses/by/4.0/}.
+
+% ============================================================================
+% CITE THIS ARTICLE
+% ============================================================================
+\section*{Cite This Article}
+
+Kawchak K. TrialMCP: MCP Servers for Physical AI Oncology Clinical Trial Systems. \textit{Zenodo}. 2026; \href{https://doi.org/10.5281/zenodo.18870961}{10.5281/zenodo.18870961}.
+
+\end{document}

@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.3.0] - 2026-03-05
+
+### Added
+- Added `papers/` directory with three comprehensive research papers presenting TrialMCP from complementary perspectives:
+  - **Paper A -- Clinical Operations** (`papers/ClinOps/`): Trial sponsors and CRO leadership perspective covering workflow sequences, federated deployment topology, integration project reduction, and adoption pathway.
+  - **Paper B -- Regulatory** (`papers/Regulatory/`): QA/CSV teams and compliance officers perspective covering 21 CFR Part 11 compliance mapping, HIPAA Safe Harbor controls, permission matrices, error taxonomy, and 39-test validation evidence.
+  - **Paper C -- Interoperability** (`papers/Interoperability/`): Health IT architects and standards contributors perspective covering FHIR R4/DICOM composition with MCP, tool surface area analysis, security gate architecture, and production integration pathways.
+- Added combined PDF (`papers/TrialMCP_Combined.pdf`) merging all three papers with original page numbering (1-10, 1-10, 1-10).
+- Added LaTeX source archives (`.zip`) for each paper containing `.tex`, `.bib`, `.sty`, and `README` files.
+- Added `papers/README.md` with paper overview, directory structure, citation, and license information.
+- Added v0.3.0 build prompt to `prompts.md`.
+- All papers published under DOI [10.5281/zenodo.18870961](https://doi.org/10.5281/zenodo.18870961) with CC BY 4.0 license.
+
+### Changed
+- Updated `releases.md` with v0.3.0 release notes.
+- Updated `changelog.md` with v0.3.0 entry.
+
+### Notes
+- This version adds research papers only. No runtime code changes to MCP servers, clients, tests, or datasets.
+- Papers are built from the v0.2.0 codebase (5 MCP servers, 23 tools, 39 tests).
+- @openai added as contributor for peer-review recommendations (GPT-5.2-Codex) and project formulation (ChatGPT 5.2 Thinking).
+
 ## [0.2.0] - 2026-03-05
 
 ### Added
