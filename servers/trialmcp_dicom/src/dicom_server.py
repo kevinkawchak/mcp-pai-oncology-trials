@@ -25,6 +25,13 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
+from servers.common import (
+    ErrorCode,
+    error_response,
+    health_status,
+    validate_dicom_uid,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -188,7 +195,7 @@ class DICOMMCPServer:
 
     SERVER_INFO = {
         "name": "trialmcp-dicom",
-        "version": "0.1.0",
+        "version": "0.2.0",
         "description": "DICOM query/retrieve MCP server with strict permissions for oncology trials",
         "capabilities": {
             "tools": True,
@@ -311,6 +318,8 @@ class DICOMMCPServer:
 
     def handle_tool_call(self, tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         """Route an MCP tool call to the appropriate handler."""
+        if tool_name == "health":
+            return health_status(self.SERVER_INFO["name"], self.SERVER_INFO["version"])
         handlers = {
             "dicom_query": self._handle_query,
             "dicom_retrieve_pointer": self._handle_retrieve_pointer,
@@ -319,7 +328,7 @@ class DICOMMCPServer:
         }
         handler = handlers.get(tool_name)
         if handler is None:
-            return {"error": f"Unknown tool: {tool_name}"}
+            return error_response(ErrorCode.INVALID_INPUT, f"Unknown tool: {tool_name}")
         return handler(arguments)
 
     def _handle_query(self, args: dict[str, Any]) -> dict[str, Any]:
@@ -329,7 +338,10 @@ class DICOMMCPServer:
 
         if not self.permissions.check_permission(role, level):
             self._emit_audit("dicom_query", args, "permission_denied")
-            return {"error": f"Role '{role}' lacks permission for {level}-level queries"}
+            return error_response(
+                ErrorCode.PERMISSION_DENIED,
+                f"Role '{role}' lacks permission for {level}-level queries",
+            )
 
         results = self.index.query(level, filters)
         self._emit_audit("dicom_query", args, f"returned {len(results)} results")
@@ -339,14 +351,18 @@ class DICOMMCPServer:
         study_uid = args["study_instance_uid"]
         role = args["caller_role"]
 
+        if not validate_dicom_uid(study_uid):
+            self._emit_audit("dicom_retrieve_pointer", args, "validation_failed")
+            return error_response(ErrorCode.VALIDATION_FAILED, f"Invalid DICOM UID: {study_uid}")
+
         if not self.permissions.can_retrieve(role):
             self._emit_audit("dicom_retrieve_pointer", args, "permission_denied")
-            return {"error": f"Role '{role}' lacks retrieve permission"}
+            return error_response(ErrorCode.PERMISSION_DENIED, f"Role '{role}' lacks retrieve permission")
 
         study = self.index.get_study(study_uid)
         if study is None:
             self._emit_audit("dicom_retrieve_pointer", args, "not_found")
-            return {"error": f"Study {study_uid} not found"}
+            return error_response(ErrorCode.NOT_FOUND, f"Study {study_uid} not found")
 
         # Generate a time-limited retrieval token
         token_data = f"{study_uid}:{role}:{datetime.now(timezone.utc).isoformat()}"
@@ -366,7 +382,10 @@ class DICOMMCPServer:
 
         if not self.permissions.check_permission(role, "STUDY"):
             self._emit_audit("dicom_study_metadata", args, "permission_denied")
-            return {"error": f"Role '{role}' lacks STUDY-level permission"}
+            return error_response(
+                ErrorCode.PERMISSION_DENIED,
+                f"Role '{role}' lacks STUDY-level permission",
+            )
 
         study = self.index.get_study(study_uid)
         if study is None:

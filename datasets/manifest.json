@@ -1,0 +1,21 @@
+{
+  "version": "1.0",
+  "generated": "2026-03-05",
+  "files": [
+    {
+      "path": "datasets/fhir-bundles/oncology_trial_bundle.json",
+      "sha256": "32c1789af42e191a7c727ec1be67941f51fd5fb9a233179867cb3c93d741c70c",
+      "size_bytes": 6729
+    },
+    {
+      "path": "datasets/dicom-samples/study_index.json",
+      "sha256": "f3390b28ad9c7f702d4978804205ae835a16bfd8b4dcfbb11ea045f2c4f4bf12",
+      "size_bytes": 4336
+    },
+    {
+      "path": "datasets/scheduling/trial_schedule.json",
+      "sha256": "1b5c15d46aa7982c8f80fbf07753ae8c16cedad27ec509f78d632fcffe6e09b6",
+      "size_bytes": 1895
+    }
+  ]
+}

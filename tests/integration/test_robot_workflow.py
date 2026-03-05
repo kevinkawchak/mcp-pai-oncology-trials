@@ -71,7 +71,8 @@ class TestEndToEndRobotWorkflow:
         """Robot agent can fetch a task order from FHIR."""
         agent = TrialRobotAgent(platform="Franka Panda")
         result = agent.fetch_task_order(self.fhir, "ONCO-TRIAL-2026-001")
-        assert "study_id" in result or "error" not in result
+        assert "study_id" in result
+        assert "error" not in result
 
     def test_robot_retrieve_imaging(self) -> None:
         """Robot agent can retrieve a DICOM study pointer."""
@@ -165,3 +166,31 @@ class TestEndToEndRobotWorkflow:
         # Robot agents don't have explicit ledger_query permission
         # (only auditors do via wildcard)
         assert authz_result["decision"] in ["allow", "deny"]
+
+    def test_cross_server_trace(self) -> None:
+        """Verify authz -> fhir -> dicom -> provenance -> ledger linkage."""
+        agent = TrialRobotAgent(platform="Franka Panda")
+        agent.execute_sample_workflow(
+            authz_server=self.authz,
+            fhir_server=self.fhir,
+            dicom_server=self.dicom,
+            ledger_server=self.ledger,
+            provenance_server=self.provenance,
+            study_id="ONCO-TRIAL-2026-001",
+            dicom_study_uid="1.2.826.0.1.3680043.8.1055.1.20260301.1",
+        )
+
+        # Ledger should contain records from fhir and dicom servers
+        fhir_records = self.ledger.handle_tool_call(
+            "ledger_query", {"server": "trialmcp-fhir"}
+        )
+        assert fhir_records["count"] > 0
+
+        dicom_records = self.ledger.handle_tool_call(
+            "ledger_query", {"server": "trialmcp-dicom"}
+        )
+        assert dicom_records["count"] > 0
+
+        # Full chain must be valid
+        chain = self.ledger.handle_tool_call("ledger_verify", {})
+        assert chain["valid"] is True

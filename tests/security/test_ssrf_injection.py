@@ -18,7 +18,7 @@ class TestSSRFPrevention:
     """Test that MCP servers prevent SSRF attacks."""
 
     def test_fhir_rejects_url_in_resource_id(self) -> None:
-        """Resource IDs containing URLs should not trigger external requests."""
+        """Resource IDs containing URLs should be rejected at the validation layer."""
         server = FHIRMCPServer()
         result = server.handle_tool_call(
             "fhir_read",
@@ -28,10 +28,23 @@ class TestSSRFPrevention:
             },
         )
         assert "error" in result
-        assert "not found" in result["error"]
+        assert result.get("error_code") == "VALIDATION_FAILED"
+
+    def test_fhir_rejects_encoded_url_in_resource_id(self) -> None:
+        """Encoded URL variants should also be rejected."""
+        server = FHIRMCPServer()
+        result = server.handle_tool_call(
+            "fhir_read",
+            {
+                "resource_type": "Patient",
+                "resource_id": "https://evil.example.com/exfil",
+            },
+        )
+        assert "error" in result
+        assert result.get("error_code") == "VALIDATION_FAILED"
 
     def test_dicom_rejects_url_in_study_uid(self) -> None:
-        """Study UIDs containing URLs should not trigger external requests."""
+        """Study UIDs containing URLs should be rejected at the validation layer."""
         server = DICOMMCPServer()
         result = server.handle_tool_call(
             "dicom_retrieve_pointer",
@@ -41,6 +54,7 @@ class TestSSRFPrevention:
             },
         )
         assert "error" in result
+        assert result.get("error_code") == "VALIDATION_FAILED"
 
 
 class TestInjectionPrevention:
@@ -180,3 +194,69 @@ class TestReplayPrevention:
             "authz_validate_token", {"token_id": token_id}
         )
         assert invalid_result["valid"] is False
+
+    def test_token_expiry_enforcement(self) -> None:
+        """Tokens issued with zero-second TTL should expire immediately."""
+        server = AuthzMCPServer()
+        token_result = server.handle_tool_call(
+            "authz_issue_token",
+            {"caller_id": "test-agent", "role": "robot_agent", "expires_seconds": 0},
+        )
+        token_id = token_result["token_id"]
+
+        # Token should already be expired
+        invalid_result = server.handle_tool_call(
+            "authz_validate_token", {"token_id": token_id}
+        )
+        assert invalid_result["valid"] is False
+
+
+class TestHealthEndpoints:
+    """Test health/readiness endpoints across all servers."""
+
+    def test_fhir_health(self) -> None:
+        server = FHIRMCPServer()
+        result = server.handle_tool_call("health", {})
+        assert result["status"] == "healthy"
+        assert result["server"] == "trialmcp-fhir"
+
+    def test_dicom_health(self) -> None:
+        server = DICOMMCPServer()
+        result = server.handle_tool_call("health", {})
+        assert result["status"] == "healthy"
+        assert result["server"] == "trialmcp-dicom"
+
+    def test_authz_health(self) -> None:
+        server = AuthzMCPServer()
+        result = server.handle_tool_call("health", {})
+        assert result["status"] == "healthy"
+        assert result["server"] == "trialmcp-authz"
+
+    def test_ledger_health(self) -> None:
+        server = LedgerMCPServer()
+        result = server.handle_tool_call("health", {})
+        assert result["status"] == "healthy"
+        assert result["server"] == "trialmcp-ledger"
+
+
+class TestPolicyDecisionTraces:
+    """Test that authorization decisions include auditable traces."""
+
+    def test_allow_decision_includes_trace(self) -> None:
+        server = AuthzMCPServer()
+        result = server.handle_tool_call(
+            "authz_evaluate",
+            {"role": "robot_agent", "server": "trialmcp-fhir", "tool": "fhir_read"},
+        )
+        assert result["decision"] == "allow"
+        assert "trace" in result
+        assert isinstance(result["trace"], list)
+
+    def test_deny_decision_includes_trace(self) -> None:
+        server = AuthzMCPServer()
+        result = server.handle_tool_call(
+            "authz_evaluate",
+            {"role": "unknown_role", "server": "trialmcp-fhir", "tool": "fhir_read"},
+        )
+        assert result["decision"] == "deny"
+        assert "trace" in result

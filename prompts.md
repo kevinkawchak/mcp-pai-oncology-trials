@@ -1,5 +1,33 @@
 # Build Prompts
 
+## Publication Readiness Prompt (v0.2.0)
+
+Based on addressing these @codex peer-review recommendations and performing additional checks and tests by yourself: prepare the repository for a future full-length paper publication: kevinkawchak/mcp-pai-oncology-trials/blob/main/peer-review/trialmcp_pack_v0.1.1_peer_review.md
+Keep the existing "MCP Servers for Physical AI Oncology Clinical Trial Systems" and "TrialMCP Pack: MCP servers for oncology clinical trial systems" titles.
+
+Distribute 3 new professional colored mermaid diagrams that are novel vs. other repo diagrams throughout the readme (2 on the repo's peer-review process, 1 on the overall mcp pai oncology trial) (white background, clean, modern, subtle "3D" card feel with rounded rectangles, cylinder shapes, thin darker border around nodes, soft pastel fills with high contrast centered text, readable, and consistent sizing, with short labels.)
+
+Make sure to clone the current repo. Be sure to fix and address errors that would cause failed checks for the single pull request. Place the new release notes in releases.md under main using the format below. Again, take the time to make sure the entire repository context is consistent for a future full-length paper.
+
+Provide an updated changelog.md (v0.2.0). Provide a copy of this prompt under the main prompts.md file. Provide a new markdown under /peer-review in response to the @codex recommendation fixes you made. Make sure @codex icons also show in main contributors section (by the user and @claude round icons). When you are finished, auto-push the update to GitHub on your own for my review. The user will then review your updates in GitHub prior to finalization.
+
+"FORMAT"
+Release title
+v0.2.0 -
+
+## Summary
+
+## Features
+
+## Contributors
+@kevinkawchak
+@claude
+@codex
+
+## Notes
+
+---
+
 ## Peer Review Prompt (v0.1.1)
 
 Your goal for the mcp-pai-oncology-trials repository is to provide recommendations regarding code fixes and repo fixes in order to make TrialMCP Pack ready for a full-length academic style paper. Be sure to provide recommended fixes to /clients, /datasets, and /tests directories code and files. Most importantly, provide code and file fix recommendations (add/remove/modify) to the /servers directory. Only recommendations are needed, no fixes. Also include what other files and directories should be included on main that are relevant to the project. Place your exact output in a new /peer-review directory markdown file based on this version. Claude Code will then utilize your file in future steps to then create a new version based on your recommendations. 

@@ -21,8 +21,10 @@ import hashlib
 import json
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
+
+from servers.common import ErrorCode, error_response, health_status
 
 logger = logging.getLogger(__name__)
 
@@ -157,16 +159,23 @@ class PolicyEngine:
         self._rules.extend(default_rules)
 
     def evaluate(self, role: str, server: str, tool: str) -> dict[str, Any]:
-        """Evaluate an authorization request against all policy rules."""
+        """Evaluate an authorization request against all policy rules.
+
+        Returns a decision dict that includes a deterministic trace of
+        every matching rule (peer-review rec 1.2 -- policy decision traces).
+        """
         matching_rules = [r for r in self._rules if r.matches(role, server, tool)]
+        trace = [{"rule_id": r.rule_id, "effect": r.effect} for r in matching_rules]
 
         # Explicit DENY takes precedence
         for rule in matching_rules:
             if rule.effect == PolicyEffect.DENY:
                 return {
                     "decision": "deny",
+                    "error_code": ErrorCode.AUTHZ_DENIED,
                     "rule_id": rule.rule_id,
                     "reason": f"Explicit deny by rule {rule.rule_id}",
+                    "trace": trace,
                 }
 
         # Check for ALLOW
@@ -175,13 +184,16 @@ class PolicyEngine:
                 return {
                     "decision": "allow",
                     "rule_id": rule.rule_id,
+                    "trace": trace,
                 }
 
         # Default deny
         return {
             "decision": "deny",
+            "error_code": ErrorCode.AUTHZ_DENIED,
             "rule_id": None,
             "reason": "No matching allow rule (deny-by-default)",
+            "trace": trace,
         }
 
     def add_rule(self, rule: PolicyRule) -> None:
@@ -212,20 +224,35 @@ class TokenStore:
         """Issue a new session token for a caller."""
         token_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc)
+        expires_at = now + timedelta(seconds=expires_seconds)
         token_data = {
             "token_id": token_id,
             "caller_id": caller_id,
             "role": role,
             "issued_at": now.isoformat(),
+            "expires_at": expires_at.isoformat(),
             "expires_seconds": expires_seconds,
-            "token_hash": hashlib.sha256(f"{token_id}:{caller_id}:{role}".encode()).hexdigest(),
+            "token_hash": hashlib.sha256(
+                f"{token_id}:{caller_id}:{role}:{now.isoformat()}".encode()
+            ).hexdigest(),
         }
         self._tokens[token_id] = token_data
         return token_data
 
     def validate_token(self, token_id: str) -> dict[str, Any] | None:
-        """Validate a token and return its metadata if valid."""
-        return self._tokens.get(token_id)
+        """Validate a token and return its metadata if valid.
+
+        Enforces expiry: returns None for tokens past their expires_at
+        timestamp (peer-review rec 1.2 -- token lifecycle).
+        """
+        token = self._tokens.get(token_id)
+        if token is None:
+            return None
+        expires_at = datetime.fromisoformat(token["expires_at"])
+        if datetime.now(timezone.utc) > expires_at:
+            del self._tokens[token_id]
+            return None
+        return token
 
     def revoke_token(self, token_id: str) -> bool:
         """Revoke a token."""
@@ -252,7 +279,7 @@ class AuthzMCPServer:
 
     SERVER_INFO = {
         "name": "trialmcp-authz",
-        "version": "0.1.0",
+        "version": "0.2.0",
         "description": "Authorization policy MCP server with RBAC and token management",
         "capabilities": {
             "tools": True,
@@ -376,6 +403,8 @@ class AuthzMCPServer:
 
     def handle_tool_call(self, tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         """Route an MCP tool call to the appropriate handler."""
+        if tool_name == "health":
+            return health_status(self.SERVER_INFO["name"], self.SERVER_INFO["version"])
         handlers = {
             "authz_evaluate": self._handle_evaluate,
             "authz_issue_token": self._handle_issue_token,
@@ -385,7 +414,7 @@ class AuthzMCPServer:
         }
         handler = handlers.get(tool_name)
         if handler is None:
-            return {"error": f"Unknown tool: {tool_name}"}
+            return error_response(ErrorCode.INVALID_INPUT, f"Unknown tool: {tool_name}")
         return handler(arguments)
 
     def _handle_evaluate(self, args: dict[str, Any]) -> dict[str, Any]:

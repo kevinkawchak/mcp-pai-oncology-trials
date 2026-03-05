@@ -1,4 +1,37 @@
 Release title
+v0.2.0 - TrialMCP Pack: Peer-Review Hardening and Publication Readiness
+
+## Summary
+This release implements code fixes and structural improvements based on the @codex v0.1.1 peer-review recommendations, advancing the TrialMCP Pack toward full-length paper publication readiness. Key changes include token expiry enforcement, shared error taxonomy across all servers, input validation with SSRF prevention, health/readiness endpoints, policy decision traces, pagination guards, dataset governance artifacts, and expanded test coverage from 30 to 39 tests (all passing).
+
+## Features
+- **Shared common module** (`servers/common/`): Machine-readable error codes (`AUTHZ_DENIED`, `VALIDATION_FAILED`, `NOT_FOUND`, etc.), input validation utilities (FHIR ID format, DICOM UID format, URL rejection), and health endpoint helper -- addressing peer-review recommendation 1.1 (cross-server contracts).
+- **Token expiry enforcement**: Tokens now include `expires_at` timestamps and are automatically rejected after expiration -- addressing peer-review recommendation 1.2 (token lifecycle).
+- **Policy decision traces**: `authz_evaluate` responses now include a trace of all matching rules for auditable authorization decisions -- addressing peer-review recommendation 1.2 (policy decision traces).
+- **Input validation**: FHIR resource IDs and DICOM UIDs are validated against format patterns; URLs are rejected at the validation layer with `VALIDATION_FAILED` error codes -- addressing peer-review recommendations 1.1 and 1.4 (security controls).
+- **Health endpoints**: All five MCP servers expose a `health` tool returning server name, version, status, and timestamp -- addressing peer-review recommendation 1.7 (operational robustness).
+- **Pagination guard**: FHIR search now enforces `max_results` to prevent unbounded result sets -- addressing peer-review recommendation 1.3 (query guardrails).
+- **Dataset governance**: `datasets/README.md` with data dictionary, provenance, and known limitations; `datasets/manifest.json` with SHA-256 checksums -- addressing peer-review recommendation 3.1.
+- **Repository-level files**: `SECURITY.md`, `CONTRIBUTING.md`, `CITATION.cff` for publication readiness -- addressing peer-review repository-level recommendations.
+- **3 new Mermaid diagrams** in README: peer-review development lifecycle, quality assurance cycle, and MCP PAI oncology trial lifecycle.
+- **Expanded test suite**: 9 new tests including token expiry, encoded SSRF variants, health endpoints, policy traces, and cross-server integration trace.
+- **Contributor icons**: @kevinkawchak, @claude, and @codex profile images in README Team section.
+
+## Contributors
+@kevinkawchak
+@claude
+@codex
+
+## Notes
+- All 39 tests pass. Test suite expanded from 30 (v0.1.0) to 39.
+- All five MCP server versions updated to 0.2.0.
+- This release addresses peer-review recommendations from `peer-review/trialmcp_pack_v0.1.1_peer_review.md` sections 1.1 (shared contracts), 1.2 (token lifecycle, policy traces), 1.3 (pagination), 1.4 (DICOM security), 1.7 (health endpoints), 3.1 (dataset governance), and repository-level recommendations (SECURITY.md, CONTRIBUTING.md, CITATION.cff).
+- Remaining peer-review recommendations (1.3 de-identification profiles, 1.5 signature support, 1.6 W3C PROV alignment, 2.1 client state machine, 4.1-4.3 adversarial tests, paper/ directory, CI/CD workflows) are documented as future work.
+- Python 3.11+ required. No new external dependencies.
+
+---
+
+Release title
 v0.1.1 - Publication-Readiness Recommendations and Peer Review Packaging
 
 ## Summary
