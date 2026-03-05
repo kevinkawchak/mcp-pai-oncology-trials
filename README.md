@@ -1,9 +1,9 @@
 # MCP Servers for Physical AI Oncology Clinical Trial Systems
 
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
-![Version 0.1.0](https://img.shields.io/badge/version-0.1.0-green)
+![Version 0.2.0](https://img.shields.io/badge/version-0.2.0-green)
 ![License MIT](https://img.shields.io/badge/license-MIT-brightgreen)
-![Tests 30 Passing](https://img.shields.io/badge/tests-30%20passing-success)
+![Tests 39 Passing](https://img.shields.io/badge/tests-39%20passing-success)
 ![MCP Protocol](https://img.shields.io/badge/protocol-MCP-purple)
 ![Date March 2026](https://img.shields.io/badge/date-March%202026-orange)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.18869776-blue)](https://doi.org/10.5281/zenodo.18869776)
@@ -85,6 +85,39 @@ The TrialMCP Pack connects autonomous trial robots to clinical systems through a
 ```
 
 **Figure 1.** TrialMCP Pack end-to-end architecture showing robot and human agents accessing clinical data through the authorization layer, specialized MCP servers, and the data provenance gateway.
+
+### Peer-Review Driven Development
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e8f4f8', 'primaryBorderColor': '#5b9bd5', 'primaryTextColor': '#2c3e50', 'lineColor': '#5b9bd5', 'secondaryColor': '#fff3e0', 'tertiaryColor': '#e8f5e9', 'fontSize': '14px'}}}%%
+flowchart LR
+    subgraph BUILD ["v0.1.0 Build"]
+        direction TB
+        A["Server Code"]:::card
+        B["Test Suite"]:::card
+        C["Datasets"]:::card
+    end
+    subgraph REVIEW ["v0.1.1 Review"]
+        direction TB
+        D["@codex Audit"]:::reviewcard
+        E["Recommendations"]:::reviewcard
+        F["Gap Analysis"]:::reviewcard
+    end
+    subgraph HARDEN ["v0.2.0 Harden"]
+        direction TB
+        G["Validation"]:::greencard
+        H["Error Codes"]:::greencard
+        I["Token Expiry"]:::greencard
+    end
+
+    BUILD --> REVIEW --> HARDEN
+
+    classDef card fill:#e8f4f8,stroke:#5b9bd5,stroke-width:2px,rx:12,ry:12,color:#2c3e50
+    classDef reviewcard fill:#fff3e0,stroke:#e6a23c,stroke-width:2px,rx:12,ry:12,color:#2c3e50
+    classDef greencard fill:#e8f5e9,stroke:#67c23a,stroke-width:2px,rx:12,ry:12,color:#2c3e50
+```
+
+**Figure 7.** Peer-review driven development lifecycle from initial build through @codex audit to hardened release.
 
 ---
 
@@ -346,17 +379,66 @@ The TrialMCP Pack integrates with the five-pillar federated learning architectur
 
 **Figure 4.** Federated MCP deployment topology showing per-site TrialMCP server instances coordinated through a federated layer with differential privacy and cross-site audit synchronization.
 
+### MCP PAI Oncology Trial Lifecycle
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e8f4f8', 'primaryBorderColor': '#5b9bd5', 'primaryTextColor': '#2c3e50', 'lineColor': '#5b9bd5', 'fontSize': '14px'}}}%%
+flowchart TB
+    subgraph PHYS ["Physical AI Layer"]
+        direction LR
+        R1[("Robot\nPlatforms")]:::cyl
+        SIM["Simulation\nFrameworks"]:::card
+    end
+    subgraph MCP ["MCP Protocol Layer"]
+        direction LR
+        AUTH["authz\nRBAC"]:::authcard
+        FHIR["fhir\nClinical"]:::fhircard
+        DICOM["dicom\nImaging"]:::dicomcard
+        LED["ledger\nAudit"]:::ledcard
+        PROV["provenance\nLineage"]:::provcard
+    end
+    subgraph CLIN ["Clinical Trial Layer"]
+        direction LR
+        EHR[("EHR\nSystems")]:::cyl
+        PACS[("PACS\nArchives")]:::cyl
+        REG["Regulatory\nCompliance"]:::regcard
+    end
+
+    PHYS --> MCP
+    MCP --> CLIN
+    AUTH --- FHIR
+    AUTH --- DICOM
+    FHIR --- LED
+    DICOM --- LED
+    LED --- PROV
+
+    classDef card fill:#e8f4f8,stroke:#5b9bd5,stroke-width:2px,rx:12,ry:12,color:#2c3e50
+    classDef cyl fill:#e8f4f8,stroke:#5b9bd5,stroke-width:2px,color:#2c3e50
+    classDef authcard fill:#fde8e8,stroke:#f56c6c,stroke-width:2px,rx:12,ry:12,color:#2c3e50
+    classDef fhircard fill:#e8f5e9,stroke:#67c23a,stroke-width:2px,rx:12,ry:12,color:#2c3e50
+    classDef dicomcard fill:#f3e8ff,stroke:#9b59b6,stroke-width:2px,rx:12,ry:12,color:#2c3e50
+    classDef ledcard fill:#fff3e0,stroke:#e6a23c,stroke-width:2px,rx:12,ry:12,color:#2c3e50
+    classDef provcard fill:#e8f4f8,stroke:#409eff,stroke-width:2px,rx:12,ry:12,color:#2c3e50
+    classDef regcard fill:#fde8e8,stroke:#f56c6c,stroke-width:2px,rx:12,ry:12,color:#2c3e50
+```
+
+**Figure 9.** MCP PAI oncology trial lifecycle showing the three-layer architecture: Physical AI platforms, MCP protocol servers, and clinical trial systems connected through standardized interfaces.
+
 ---
 
 ## Security and Compliance
 
-### Validation Test Suite (30 tests, all passing)
+### Validation Test Suite (39 tests, all passing)
 
-**Security Tests (10 tests):**
-- SSRF prevention: URL-based resource IDs and study UIDs rejected
+**Security Tests (18 tests):**
+- SSRF prevention: URL-based resource IDs and study UIDs rejected with `VALIDATION_FAILED` error codes
+- Encoded URL variant rejection (HTTPS in resource IDs, DICOM UIDs)
 - Injection prevention: JSON injection and SQL injection in parameters
 - Permission escalation: Role boundary enforcement across all servers
 - Replay prevention: Token revocation and hash-chain integrity
+- Token expiry enforcement: Zero-TTL tokens rejected immediately
+- Health endpoint availability across all servers
+- Policy decision trace validation (allow and deny paths)
 
 **Audit Completeness Tests (12 tests):**
 - Every FHIR tool call produces a signed audit record
@@ -364,11 +446,12 @@ The TrialMCP Pack integrates with the five-pillar federated learning architectur
 - Ledger hash-chain integrity after multi-record appends
 - Provenance tool calls produce audit records
 
-**Integration Tests (8 tests):**
+**Integration Tests (9 tests):**
 - End-to-end robot agent workflow across all 5 MCP servers
 - De-identification verification in FHIR responses
 - Permission enforcement during workflow execution
 - Audit chain integrity after complete workflows
+- Cross-server trace verification (authz -> fhir -> dicom -> ledger linkage)
 
 ### Regulatory Compliance
 
@@ -384,11 +467,14 @@ The TrialMCP Pack integrates with the five-pillar federated learning architectur
 
 ### Security Hardening
 
-- **Authentication:** Token-based session management with role scoping
-- **Authorization:** Deny-by-default RBAC with explicit DENY precedence
+- **Authentication:** Token-based session management with role scoping and expiry enforcement
+- **Authorization:** Deny-by-default RBAC with explicit DENY precedence and policy decision traces
+- **Input validation:** FHIR ID and DICOM UID format validation, SSRF prevention
+- **Error taxonomy:** Machine-readable error codes (`AUTHZ_DENIED`, `VALIDATION_FAILED`, `NOT_FOUND`)
 - **Privacy:** HMAC-SHA256 pseudonymization, Safe Harbor de-identification
-- **Integrity:** SHA-256 hash chains, data fingerprinting
+- **Integrity:** SHA-256 hash chains with canonical serialization, data fingerprinting
 - **Audit:** Every tool call logged, replayable traces, chain verification
+- **Health monitoring:** Health/readiness endpoints on all servers
 - **Least Privilege:** Role-scoped access to servers, tools, and data
 
 ```
@@ -425,6 +511,36 @@ The TrialMCP Pack integrates with the five-pillar federated learning architectur
 ```
 
 **Figure 5.** Data flow security showing the privacy-preserving access pattern through authorization, de-identification, and audit logging layers.
+
+### Quality Assurance Cycle
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#e8f4f8', 'primaryBorderColor': '#5b9bd5', 'primaryTextColor': '#2c3e50', 'lineColor': '#5b9bd5', 'fontSize': '14px'}}}%%
+flowchart TB
+    U["@kevinkawchak\nRequirements"]:::usercard
+    CL["@claude\nImplementation"]:::claudecard
+    CX["@codex\nPeer Review"]:::codexcard
+    T["39 Tests\nAll Passing"]:::testcard
+    V["Input Validation\nSSRF + UID"]:::valcard
+    R["Publication\nReadiness"]:::pubcard
+
+    U --> CL
+    CL --> T
+    T --> CX
+    CX -->|recommendations| CL
+    CL --> V
+    V --> T
+    T --> R
+
+    classDef usercard fill:#e8f4f8,stroke:#5b9bd5,stroke-width:2px,rx:12,ry:12,color:#2c3e50
+    classDef claudecard fill:#f3e8ff,stroke:#9b59b6,stroke-width:2px,rx:12,ry:12,color:#2c3e50
+    classDef codexcard fill:#fff3e0,stroke:#e6a23c,stroke-width:2px,rx:12,ry:12,color:#2c3e50
+    classDef testcard fill:#e8f5e9,stroke:#67c23a,stroke-width:2px,rx:12,ry:12,color:#2c3e50
+    classDef valcard fill:#fde8e8,stroke:#f56c6c,stroke-width:2px,rx:12,ry:12,color:#2c3e50
+    classDef pubcard fill:#e8f4f8,stroke:#409eff,stroke-width:2px,rx:12,ry:12,color:#2c3e50
+```
+
+**Figure 8.** Quality assurance cycle showing the collaborative workflow between @kevinkawchak (requirements), @claude (implementation), and @codex (peer review) converging on publication readiness.
 
 ---
 
@@ -562,7 +678,7 @@ python -m pytest tests/audit/ -v
 python -m pytest tests/integration/ -v
 ```
 
-**Test Coverage:** 30 tests across 3 categories (security, audit, integration)
+**Test Coverage:** 39 tests across 3 categories (security, audit, integration)
 
 ---
 
@@ -571,6 +687,8 @@ python -m pytest tests/integration/ -v
 ```
 mcp-pai-oncology-trials/
 ├── servers/
+│   ├── common/                 # Shared error codes, validation, health checks
+│   │   └── __init__.py
 │   ├── trialmcp_fhir/          # Read-only FHIR MCP server
 │   │   └── src/
 │   │       └── fhir_server.py
@@ -593,16 +711,21 @@ mcp-pai-oncology-trials/
 ├── datasets/
 │   ├── fhir-bundles/           # Synthetic FHIR R4 bundles
 │   ├── dicom-samples/          # Synthetic DICOM study index
-│   └── scheduling/             # Simulated trial scheduling data
+│   ├── scheduling/             # Simulated trial scheduling data
+│   ├── manifest.json           # SHA-256 checksums for reproducibility
+│   └── README.md               # Data dictionary and provenance
 ├── tests/
-│   ├── security/               # SSRF, injection, escalation, replay tests
+│   ├── security/               # SSRF, injection, escalation, replay, health tests
 │   ├── audit/                  # Audit completeness tests
 │   └── integration/            # End-to-end robot workflow tests
-├── docs/                       # Documentation
+├── peer-review/                # Peer-review recommendations and responses
 ├── pyproject.toml              # Project configuration
 ├── changelog.md                # Version changelog
 ├── releases.md                 # Release notes
 ├── prompts.md                  # Build prompts
+├── SECURITY.md                 # Security policy
+├── CONTRIBUTING.md             # Contribution guidelines
+├── CITATION.cff                # Academic citation metadata
 ├── LICENSE                     # MIT License
 └── README.md                   # This file
 ```
@@ -643,6 +766,14 @@ mcp-pai-oncology-trials/
 ---
 
 ## Team and Collaboration
+
+### Contributors
+
+| | Contributor | Role |
+|---|---|---|
+| <img src="https://github.com/kevinkawchak.png" width="40" height="40" style="border-radius:50%"> | [@kevinkawchak](https://github.com/kevinkawchak) | Project lead, requirements, architecture |
+| <img src="https://github.com/claude.png" width="40" height="40" style="border-radius:50%"> | [@claude](https://github.com/claude) | Implementation, testing, documentation |
+| <img src="https://github.com/codex.png" width="40" height="40" style="border-radius:50%"> | [@codex](https://github.com/codex) | Peer review, recommendations, quality audit |
 
 ### Team Roles (12-month timeline)
 - **Security Engineer:** Authentication/authorization framework, security test suite, hardening guides

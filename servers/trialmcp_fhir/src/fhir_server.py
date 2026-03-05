@@ -25,6 +25,13 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
+from servers.common import (
+    ErrorCode,
+    error_response,
+    health_status,
+    validate_fhir_id,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -139,9 +146,16 @@ class FHIRDataStore:
         return self._deident.deidentify_resource(resource)
 
     def search(
-        self, resource_type: str, params: dict[str, str] | None = None
+        self,
+        resource_type: str,
+        params: dict[str, str] | None = None,
+        max_results: int = 100,
     ) -> list[dict[str, Any]]:
-        """Search FHIR resources by type and optional parameters."""
+        """Search FHIR resources by type with optional parameters.
+
+        Pagination guard: returns at most *max_results* entries
+        (peer-review rec 1.3 -- pagination and query guardrails).
+        """
         results = []
         for key, resource in self._resources.items():
             if not key.startswith(f"{resource_type}/"):
@@ -156,6 +170,8 @@ class FHIRDataStore:
                 if not match:
                     continue
             results.append(self._deident.deidentify_resource(resource))
+            if len(results) >= max_results:
+                break
         return results
 
 
@@ -173,7 +189,7 @@ class FHIRMCPServer:
 
     SERVER_INFO = {
         "name": "trialmcp-fhir",
-        "version": "0.1.0",
+        "version": "0.2.0",
         "description": "Read-only FHIR MCP server for oncology clinical trial resources",
         "capabilities": {
             "tools": True,
@@ -285,6 +301,8 @@ class FHIRMCPServer:
 
     def handle_tool_call(self, tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         """Route an MCP tool call to the appropriate handler."""
+        if tool_name == "health":
+            return health_status(self.SERVER_INFO["name"], self.SERVER_INFO["version"])
         handlers = {
             "fhir_read": self._handle_read,
             "fhir_search": self._handle_search,
@@ -293,16 +311,25 @@ class FHIRMCPServer:
         }
         handler = handlers.get(tool_name)
         if handler is None:
-            return {"error": f"Unknown tool: {tool_name}"}
+            return error_response(ErrorCode.INVALID_INPUT, f"Unknown tool: {tool_name}")
         return handler(arguments)
 
     def _handle_read(self, args: dict[str, Any]) -> dict[str, Any]:
         resource_type = args["resource_type"]
         resource_id = args["resource_id"]
+        if not validate_fhir_id(resource_id):
+            self._emit_audit("fhir_read", args, "validation_failed")
+            return error_response(
+                ErrorCode.VALIDATION_FAILED,
+                f"Invalid resource ID: {resource_id}",
+            )
         result = self.store.read(resource_type, resource_id)
         self._emit_audit("fhir_read", args, "found" if result else "not_found")
         if result is None:
-            return {"error": f"Resource {resource_type}/{resource_id} not found"}
+            return error_response(
+                ErrorCode.NOT_FOUND,
+                f"Resource {resource_type}/{resource_id} not found",
+            )
         return {"resource": result}
 
     def _handle_search(self, args: dict[str, Any]) -> dict[str, Any]:
@@ -314,10 +341,13 @@ class FHIRMCPServer:
 
     def _handle_patient_lookup(self, args: dict[str, Any]) -> dict[str, Any]:
         patient_id = args["patient_id"]
+        if not validate_fhir_id(patient_id):
+            self._emit_audit("fhir_patient_lookup", args, "validation_failed")
+            return error_response(ErrorCode.VALIDATION_FAILED, f"Invalid patient ID: {patient_id}")
         patient = self.store.read("Patient", patient_id)
         self._emit_audit("fhir_patient_lookup", args, "found" if patient else "not_found")
         if patient is None:
-            return {"error": f"Patient {patient_id} not found"}
+            return error_response(ErrorCode.NOT_FOUND, f"Patient {patient_id} not found")
         # Enrich with enrollment status
         subjects = self.store.search("ResearchSubject", {"individual": patient_id})
         return {

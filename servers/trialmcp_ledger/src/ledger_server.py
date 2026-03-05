@@ -24,6 +24,8 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
+from servers.common import ErrorCode, error_response, health_status
+
 logger = logging.getLogger(__name__)
 
 
@@ -222,7 +224,7 @@ class LedgerMCPServer:
 
     SERVER_INFO = {
         "name": "trialmcp-ledger",
-        "version": "0.1.0",
+        "version": "0.2.0",
         "description": "Audit ledger and chain-of-custody MCP server for clinical trials",
         "capabilities": {
             "tools": True,
@@ -326,6 +328,8 @@ class LedgerMCPServer:
 
     def handle_tool_call(self, tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         """Route an MCP tool call to the appropriate handler."""
+        if tool_name == "health":
+            return health_status(self.SERVER_INFO["name"], self.SERVER_INFO["version"])
         handlers = {
             "ledger_append": self._handle_append,
             "ledger_verify": self._handle_verify,
@@ -335,7 +339,7 @@ class LedgerMCPServer:
         }
         handler = handlers.get(tool_name)
         if handler is None:
-            return {"error": f"Unknown tool: {tool_name}"}
+            return error_response(ErrorCode.INVALID_INPUT, f"Unknown tool: {tool_name}")
         return handler(arguments)
 
     def _handle_append(self, args: dict[str, Any]) -> dict[str, Any]:

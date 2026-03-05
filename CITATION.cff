@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "TrialMCP Pack: MCP Servers for Physical AI Oncology Clinical Trial Systems"
+type: software
+authors:
+  - name: "Kevin Kawchak"
+    alias: kevinkawchak
+  - name: "Claude"
+    alias: claude
+  - name: "Codex"
+    alias: codex
+repository-code: "https://github.com/kevinkawchak/mcp-pai-oncology-trials"
+license: MIT
+version: "0.2.0"
+date-released: "2026-03-05"
+keywords:
+  - model-context-protocol
+  - oncology
+  - clinical-trials
+  - physical-ai
+  - robotics
+  - fhir
+  - dicom
+  - audit
+  - hipaa
+  - mcp

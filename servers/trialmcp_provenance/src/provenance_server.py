@@ -24,6 +24,8 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
+from servers.common import ErrorCode, error_response, health_status
+
 logger = logging.getLogger(__name__)
 
 
@@ -179,7 +181,7 @@ class ProvenanceMCPServer:
 
     SERVER_INFO = {
         "name": "trialmcp-provenance",
-        "version": "0.1.0",
+        "version": "0.2.0",
         "description": "Data provenance gateway enforcing least-privilege access with audit traces",
         "capabilities": {
             "tools": True,
@@ -337,6 +339,8 @@ class ProvenanceMCPServer:
 
     def handle_tool_call(self, tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         """Route an MCP tool call to the appropriate handler."""
+        if tool_name == "health":
+            return health_status(self.SERVER_INFO["name"], self.SERVER_INFO["version"])
         handlers = {
             "provenance_register_source": self._handle_register,
             "provenance_record_access": self._handle_record_access,
@@ -346,7 +350,7 @@ class ProvenanceMCPServer:
         }
         handler = handlers.get(tool_name)
         if handler is None:
-            return {"error": f"Unknown tool: {tool_name}"}
+            return error_response(ErrorCode.INVALID_INPUT, f"Unknown tool: {tool_name}")
         return handler(arguments)
 
     def _handle_register(self, args: dict[str, Any]) -> dict[str, Any]:
