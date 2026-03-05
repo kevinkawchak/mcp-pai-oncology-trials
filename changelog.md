@@ -21,6 +21,8 @@
 - This version adds research papers only. No runtime code changes to MCP servers, clients, tests, or datasets.
 - Papers are built from the v0.2.0 codebase (5 MCP servers, 23 tools, 39 tests).
 - @openai added as contributor for peer-review recommendations (GPT-5.2-Codex) and project formulation (ChatGPT 5.2 Thinking).
+---
+- @kevinkawchak adds ChatGPT prompts, and posts.md 2026-03-05
 
 ## [0.2.0] - 2026-03-05
 
