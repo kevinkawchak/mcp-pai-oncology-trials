@@ -356,7 +356,7 @@ The TrialMCP integrates with the five-pillar federated learning architecture for
  | trialmcp-dicom   |     | trialmcp-dicom   |     | trialmcp-dicom   |
  | trialmcp-authz   |     | trialmcp-authz   |     | trialmcp-authz   |
  | trialmcp-ledger  |     | trialmcp-ledger  |     | trialmcp-ledger  |
- +--------|--------+     +--------|--------+     +--------|--------+
+ +--------|---------+     +--------|---------+     +--------|---------+
           |                        |                        |
           |     Differential       |     Secure             |
           |     Privacy            |     Aggregation        |
@@ -364,20 +364,20 @@ The TrialMCP integrates with the five-pillar federated learning architecture for
  +-----------------------------------------------------------+
  |          FEDERATED COORDINATION LAYER                     |
  |                                                           |
- |   FedAvg / FedProx / SCAFFOLD Aggregation                |
- |   Cross-Site Audit Log Synchronization                   |
- |   DICOM/FHIR/LOINC/RxNorm/MedDRA Harmonization          |
- |   Per-Site Privacy Budget Enforcement                    |
+ |   FedAvg / FedProx / SCAFFOLD Aggregation                 |
+ |   Cross-Site Audit Log Synchronization                    |
+ |   DICOM/FHIR/LOINC/RxNorm/MedDRA Harmonization            |
+ |   Per-Site Privacy Budget Enforcement                     |
  +-------------------------------|---------------------------+
                                  |
                                  v
  +-----------------------------------------------------------+
  |           TRIALMCP-PROVENANCE  (Central Gateway)          |
  |                                                           |
- |   Cross-Site Lineage Tracking                            |
- |   Data Fingerprint Verification                          |
- |   Actor History Across Sites                             |
- |   Replayable Multi-Site Audit Traces                     |
+ |   Cross-Site Lineage Tracking                             |
+ |   Data Fingerprint Verification                           |
+ |   Actor History Across Sites                              |
+ |   Replayable Multi-Site Audit Traces                      |
  +-----------------------------------------------------------+
 ```
 
