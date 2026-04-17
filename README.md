@@ -47,9 +47,9 @@ The TrialMCP connects autonomous trial robots to clinical systems through a laye
  |    ROBOT AGENTS           |     |    HUMAN AGENTS           |
  |  (Physical AI Platforms)  |     |  (Trial Staff / Monitors) |
  |                           |     |                           |
- |  Franka Panda (USL 7.4)  |     |  Trial Coordinators       |
- |  da Vinci dVRK (USL 7.1) |     |  Data Monitors            |
- |  Kinova Gen3  (USL 5.7)  |     |  Auditors                 |
+ |  Franka Panda (USL 7.4)   |     |  Trial Coordinators       |
+ |  da Vinci dVRK (USL 7.1)  |     |  Data Monitors            |
+ |  Kinova Gen3  (USL 5.7)   |     |  Auditors                 |
  +-------------|-------------+     +-------------|-------------+
                |                                 |
                v                                 v
@@ -73,7 +73,7 @@ The TrialMCP connects autonomous trial robots to clinical systems through a laye
  | Study Status   |   | C-MOVE Pointers  |   | Chain Verify      |
  | FHIR Search    |   | RECIST 1.1       |   | Replay Traces     |
  | De-ID Pipeline |   | Permission Gates |   | 21 CFR Part 11    |
- +----------|-----+   +--------|--------+   +---------|----------+
+ +----------|-----+   +---------|--------+   +---------|---------+
             |                   |                      |
             +-------------------+----------------------+
                                 |
