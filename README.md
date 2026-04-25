@@ -368,9 +368,9 @@ The TrialMCP integrates with the five-pillar federated learning architecture for
  |   Cross-Site Audit Log Synchronization                             |
  |   DICOM/FHIR/LOINC/RxNorm/MedDRA Harmonization                     |
  |   Per-Site Privacy Budget Enforcement                              |
- +-------------------------------|------------------------------------+
-                                 |
-                                 v
+ +---------------------------------|----------------------------------+
+                                   |
+                                   v
  +--------------------------------------------------------------------+
  |           TRIALMCP-PROVENANCE  (Central Gateway)                   |
  |                                                                    |
