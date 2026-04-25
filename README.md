@@ -361,24 +361,24 @@ The TrialMCP integrates with the five-pillar federated learning architecture for
           |     Differential       |     Secure             |
           |     Privacy            |     Aggregation        |
           v                        v                        v
- +-----------------------------------------------------------+
- |          FEDERATED COORDINATION LAYER                     |
- |                                                           |
- |   FedAvg / FedProx / SCAFFOLD Aggregation                 |
- |   Cross-Site Audit Log Synchronization                    |
- |   DICOM/FHIR/LOINC/RxNorm/MedDRA Harmonization            |
- |   Per-Site Privacy Budget Enforcement                     |
- +-------------------------------|---------------------------+
+ +--------------------------------------------------------------------+
+ |          FEDERATED COORDINATION LAYER                              |
+ |                                                                    |
+ |   FedAvg / FedProx / SCAFFOLD Aggregation                          |
+ |   Cross-Site Audit Log Synchronization                             |
+ |   DICOM/FHIR/LOINC/RxNorm/MedDRA Harmonization                     |
+ |   Per-Site Privacy Budget Enforcement                              |
+ +-------------------------------|------------------------------------+
                                  |
                                  v
- +-----------------------------------------------------------+
- |           TRIALMCP-PROVENANCE  (Central Gateway)          |
- |                                                           |
- |   Cross-Site Lineage Tracking                             |
- |   Data Fingerprint Verification                           |
- |   Actor History Across Sites                              |
- |   Replayable Multi-Site Audit Traces                      |
- +-----------------------------------------------------------+
+ +--------------------------------------------------------------------+
+ |           TRIALMCP-PROVENANCE  (Central Gateway)                   |
+ |                                                                    |
+ |   Cross-Site Lineage Tracking                                      |
+ |   Data Fingerprint Verification                                    |
+ |   Actor History Across Sites                                       |
+ |   Replayable Multi-Site Audit Traces                               |
+ +--------------------------------------------------------------------+
 ```
 
 **Figure 4.** Federated MCP deployment topology showing per-site TrialMCP server instances coordinated through a federated layer with differential privacy and cross-site audit synchronization.
